@@ -7,7 +7,8 @@ from models.sensor_data import SensorData
 router = APIRouter()
 
 
-@router.post("/sensor-data")
+
+@router.post("/receive-sensor-data")
 async def receive_sensor_data(data: SensorData):
     """
     Receives data from an ESP32 sensor unit.
@@ -27,8 +28,6 @@ async def receive_sensor_data(data: SensorData):
         # check if insert was successful
         if response.data:
             print("DATA INSERTED TO SUPABASE SUCCESSFULLY")
-
-            # return success response
             return {
                 "status": "success",
                 "message": "Data stored in Supabase",
