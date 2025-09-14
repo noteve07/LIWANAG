@@ -7,7 +7,7 @@ API_URL = "http://localhost:8000/api/v1/device-offline"
 print("Testing Device Offline Endpoint")
 print("=" * 40)
 
-# Test device payload
+# ESP32 payload when turned off
 device_payload = {
     "device_id": 1001,
     "battery_level": 45

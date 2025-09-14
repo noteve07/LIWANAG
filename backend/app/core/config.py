@@ -19,6 +19,10 @@ class Settings:
     
     # CORS Configuration
     ALLOWED_ORIGINS: list = ["*"]  # For development, restrict in production
+    
+    # Device Scheduler Configuration
+    SCHEDULER_CHECK_INTERVAL_MINUTES: float = 0.5  
+    SCHEDULER_TIMEOUT_MINUTES: int = 5 
 
 
 # Global settings instance
