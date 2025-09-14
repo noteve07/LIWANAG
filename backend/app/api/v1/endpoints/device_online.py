@@ -72,7 +72,7 @@ async def device_online(payload: DeviceOnlinePayload):
                 "message": f"Device {payload.device_id} added to database and set online",
                 "action": "created",
                 "device_id": payload.device_id,
-                "installed_date": current_time.isoformat(),
+                "installed_at": current_time.isoformat(),
                 "device_data": response.data[0] if response.data else None
             }
             

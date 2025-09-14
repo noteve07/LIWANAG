@@ -24,3 +24,8 @@ class DeviceOnlinePayload(BaseModel):
     device_id: int  # Changed to int to match database
     name: str
     battery_level: Optional[int] = None
+
+class DeviceOfflinePayload(BaseModel):
+    """Minimal payload that ESP32 sends when going offline"""
+    device_id: int
+    battery_level: Optional[int] = None
