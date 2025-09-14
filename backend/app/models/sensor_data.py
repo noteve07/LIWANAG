@@ -11,3 +11,4 @@ class SensorData(BaseModel):
     timestamp: datetime
     barangay: Optional[str] = None
     street: Optional[str] = None
+    
