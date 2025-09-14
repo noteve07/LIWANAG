@@ -7,7 +7,7 @@ API_URL = "http://localhost:8000/api/v1/device-online"
 print("Testing Device Online Endpoint")
 print("=" * 40)
 
-# Test device payload
+# ESP32 payload when turned on
 device_payload = {
     "device_id": 1001,
     "name": "Alpha",
