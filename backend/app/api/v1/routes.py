@@ -1,17 +1,10 @@
 from fastapi import APIRouter
-from .endpoints import receive_sensor_data
 from .endpoints import check_supabase
-from .endpoints import device_online
-from .endpoints import device_offline
-from .endpoints import devices
-from .endpoints import device_status
+from .endpoints import device_manager
+from .endpoints import esp32
 
 api_router = APIRouter()
 
-# include all endpoint routers - one file per endpoint
-api_router.include_router(check_supabase.router, tags=["database"])
-api_router.include_router(receive_sensor_data.router, tags=["ESP32"])
-api_router.include_router(device_online.router, tags=["ESP32"])
-api_router.include_router(device_offline.router, tags=["ESP32"])
-api_router.include_router(devices.router, tags=["device-management"])
-api_router.include_router(device_status.router, tags=["device-management"])
+api_router.include_router(check_supabase.router, tags=["Database"])
+api_router.include_router(esp32.router, tags=["ESP32 Connections"])
+api_router.include_router(device_manager.router, tags=["Device Management"])
