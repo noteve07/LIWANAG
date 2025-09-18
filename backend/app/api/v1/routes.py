@@ -8,10 +8,10 @@ from .endpoints import device_status
 
 api_router = APIRouter()
 
-# Include all endpoint routers - one file per endpoint!
-api_router.include_router(receive_sensor_data.router, tags=["sensor-data"])
+# include all endpoint routers - one file per endpoint
 api_router.include_router(check_supabase.router, tags=["database"])
-api_router.include_router(device_online.router, tags=["device-management"])
-api_router.include_router(device_offline.router, tags=["device-management"])
+api_router.include_router(receive_sensor_data.router, tags=["ESP32"])
+api_router.include_router(device_online.router, tags=["ESP32"])
+api_router.include_router(device_offline.router, tags=["ESP32"])
 api_router.include_router(devices.router, tags=["device-management"])
 api_router.include_router(device_status.router, tags=["device-management"])
