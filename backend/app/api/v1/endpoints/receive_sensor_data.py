@@ -1,8 +1,8 @@
 from datetime import datetime
 from fastapi import APIRouter, HTTPException
 
-from core.database import supabase
-from models.sensor_data import SensorData
+from app.core.database import supabase
+from app.models.sensor_data import SensorData
 
 router = APIRouter()
 

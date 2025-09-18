@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException
 from typing import Optional
 
-from core.database import supabase
-from models.sensor_device import DeviceOfflinePayload, DeviceStatus
+from app.core.database import supabase
+from app.models.sensor_device import DeviceOfflinePayload, DeviceStatus
 
 router = APIRouter()
 

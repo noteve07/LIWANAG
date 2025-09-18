@@ -2,9 +2,9 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Optional
 
-from core.database import supabase
-from core.config import settings
-from models.sensor_device import DeviceStatus
+from app.core.database import supabase
+from app.core.config import settings
+from app.models.sensor_device import DeviceStatus
 
 
 class DeviceScheduler:

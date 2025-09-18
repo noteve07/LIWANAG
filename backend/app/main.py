@@ -1,10 +1,12 @@
+import sys
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from core.config import settings
-from api.v1.routes import api_router
-from services.device_scheduler import device_scheduler
+from app.core.config import settings
+from app.api.v1.routes import api_router
+from app.services.device_scheduler import device_scheduler
 
 
 @asynccontextmanager

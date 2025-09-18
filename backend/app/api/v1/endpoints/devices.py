@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter, HTTPException
 
-from core.database import supabase
+from app.core.database import supabase
 
 router = APIRouter()
 
