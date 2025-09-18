@@ -9,9 +9,9 @@ print("=" * 40)
 
 # ESP32 payload when turned on
 device_payload = {
-    "device_id": 1001,
-    "name": "Alpha",
-    "battery_level": 85
+    "device_id": 1003,
+    "name": "Charlie",
+    "battery_level": 60
 }
 
 print(f"Sending device online request for device: {device_payload['device_id']}")
