@@ -1,0 +1,130 @@
+[
+    {
+        "id": "JPR-1",
+        "lat": 14.6799323,
+        "lon": 120.5421361,
+        "lux": 450,
+        "street_name": "J. P. Rizal Street",
+        "barangay_name": "Bagumbayan"
+    },
+    {
+        "id": "JPR-2",
+        "lat": 14.6800568,
+        "lon": 120.5423434,
+        "lux": 600,
+        "street_name": "J. P. Rizal Street",
+        "barangay_name": "Bagumbayan"
+    },
+    {
+        "id": "JPR-3",
+        "lat": 14.6801821,
+        "lon": 120.542552,
+        "lux": 750,
+        "street_name": "J. P. Rizal Street",
+        "barangay_name": "Bagumbayan"
+    },
+    {
+        "id": "DMB-1",
+        "lat": 14.6799323,
+        "lon": 120.5421361,
+        "lux": 550,
+        "street_name": "Don Manuel Banzon Avenue",
+        "barangay_name": "Bagumbayan"
+    },
+    {
+        "id": "DMB-2",
+        "lat": 14.6802487,
+        "lon": 120.541978,
+        "lux": 650,
+        "street_name": "Don Manuel Banzon Avenue",
+        "barangay_name": "Bagumbayan"
+    },
+    {
+        "id": "MDR-1",
+        "lat": 14.6903484,
+        "lon": 120.5593838,
+        "lux": 520,
+        "street_name": "M. Delos Reyes Street",
+        "barangay_name": "Tenejero"
+    },
+    {
+        "id": "MDR-2",
+        "lat": 14.6903891,
+        "lon": 120.5595063,
+        "lux": 480,
+        "street_name": "M. Delos Reyes Street",
+        "barangay_name": "Tenejero"
+    },
+    {
+        "id": "MDR-3",
+        "lat": 14.6905179,
+        "lon": 120.5597014,
+        "lux": 610,
+        "street_name": "M. Delos Reyes Street",
+        "barangay_name": "Tenejero"
+    },
+    {
+        "id": "MDR-4",
+        "lat": 14.6905622,
+        "lon": 120.5597685,
+        "lux": 550,
+        "street_name": "M. Delos Reyes Street",
+        "barangay_name": "Tenejero"
+    },
+    {
+        "id": "MDR-5",
+        "lat": 14.6907026,
+        "lon": 120.5599696,
+        "lux": 420,
+        "street_name": "M. Delos Reyes Street",
+        "barangay_name": "Tenejero"
+    },
+    {
+        "id": "MDR-6",
+        "lat": 14.6907645,
+        "lon": 120.5599965,
+        "lux": 380,
+        "street_name": "M. Delos Reyes Street",
+        "barangay_name": "Tenejero"
+    },
+    {
+        "id": "MDR-7",
+        "lat": 14.6908320,
+        "lon": 120.5600063,
+        "lux": 350,
+        "street_name": "M. Delos Reyes Street",
+        "barangay_name": "Tenejero"
+    },
+    {
+        "id": "MDR-8",
+        "lat": 14.6915557,
+        "lon": 120.5599024,
+        "lux": 290,
+        "street_name": "M. Delos Reyes Street",
+        "barangay_name": "Tenejero"
+    },
+    {
+        "id": "MDR-9",
+        "lat": 14.6916083,
+        "lon": 120.5599106,
+        "lux": 310,
+        "street_name": "M. Delos Reyes Street",
+        "barangay_name": "Tenejero"
+    },
+    {
+        "id": "MDR-10",
+        "lat": 14.6916375,
+        "lon": 120.5599463,
+        "lux": 330,
+        "street_name": "M. Delos Reyes Street",
+        "barangay_name": "Tenejero"
+    },
+    {
+        "id": "MDR-11",
+        "lat": 14.6916959,
+        "lon": 120.5601362,
+        "lux": 400,
+        "street_name": "M. Delos Reyes Street",
+        "barangay_name": "Tenejero"
+    }
+]

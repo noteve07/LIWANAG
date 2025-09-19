@@ -1,16 +1,18 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Marker, Popup, Polyline, Tooltip } from "react-leaflet";
 import LeafletMap from "./LeafletMap";
 import L from "leaflet";
 
 // Import the sample points JSON
-import samplePoints from "./sample_points.json";
+import samplePoints from "./from_backend.json";
 
 interface PointData {
   id: string;
   lat: number;
   lon: number;
   lux: number;
+  street_name: string;
+  barangay_name: string;
 }
 
 interface MapVisualizationProps {
@@ -49,10 +51,169 @@ const createLightIcon = (lux: number) => {
   });
 };
 
+// Control panel component
+const ControlPanel = ({
+  showMarkers,
+  showPolylines,
+  onToggleMarkers,
+  onTogglePolylines,
+}: {
+  showMarkers: boolean;
+  showPolylines: boolean;
+  onToggleMarkers: () => void;
+  onTogglePolylines: () => void;
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <>
+      {/* Control Panel Button */}
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 1000,
+          backgroundColor: "rgba(30, 30, 30, 0.9)",
+          borderRadius: "50%",
+          width: "40px",
+          height: "40px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+          transition: "transform 0.2s ease",
+        }}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.transform = "translateX(-50%) scale(1.1)")
+        }
+        onMouseLeave={(e) =>
+          (e.currentTarget.style.transform = "translateX(-50%) scale(1)")
+        }
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12 15.5A3.5 3.5 0 0 0 15.5 12 3.5 3.5 0 0 0 12 8.5a3.5 3.5 0 0 0-3.5 3.5 3.5 3.5 0 0 0 3.5 3.5zm0-5A1.5 1.5 0 0 1 13.5 12 1.5 1.5 0 0 1 12 13.5 1.5 1.5 0 0 1 10.5 12 1.5 1.5 0 0 1 12 10.5zm7.43 2.4l-.84-.83a6.4 6.4 0 0 0-.22-2.6l.89-.89a7.1 7.1 0 0 0-.63-1.05l-1.19.51a6.5 6.5 0 0 0-2.23-1.29l-.51-1.19a7.1 7.1 0 0 0-1.05-.63l-.89.89a6.4 6.4 0 0 0-2.6-.22l-.83-.84a7.1 7.1 0 0 0-1.05.63l.51 1.19a6.5 6.5 0 0 0-1.29 2.23l-1.19.51a7.1 7.1 0 0 0-.63 1.05l.89.89a6.4 6.4 0 0 0-.22 2.6l-.84.83a7.1 7.1 0 0 0 .63 1.05l1.19-.51a6.5 6.5 0 0 0 2.23 1.29l.51 1.19a7.1 7.1 0 0 0 1.05.63l.89-.89a6.4 6.4 0 0 0 2.6.22l.83.84a7.1 7.1 0 0 0 1.05-.63l-.51-1.19a6.5 6.5 0 0 0 1.29-2.23l1.19-.51a7.1 7.1 0 0 0 .63-1.05l-.89-.89a6.4 6.4 0 0 0 .22-2.6z"
+            fill="white"
+          />
+        </svg>
+      </div>
+
+      {/* Slide-up Panel */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: isExpanded ? "70px" : "-100px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 999,
+          backgroundColor: "rgba(30, 30, 30, 0.9)",
+          padding: "15px 20px",
+          borderRadius: "12px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+          transition: "bottom 0.3s ease",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+          minWidth: "200px",
+        }}
+      >
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            color: "white",
+            cursor: "pointer",
+            userSelect: "none",
+          }}
+        >
+          Markers
+          <div
+            style={{
+              width: "40px",
+              height: "20px",
+              backgroundColor: showMarkers ? "#1976d2" : "#666",
+              borderRadius: "10px",
+              position: "relative",
+              transition: "background-color 0.2s",
+              cursor: "pointer",
+            }}
+            onClick={onToggleMarkers}
+          >
+            <div
+              style={{
+                width: "16px",
+                height: "16px",
+                backgroundColor: "white",
+                borderRadius: "50%",
+                position: "absolute",
+                top: "2px",
+                left: showMarkers ? "22px" : "2px",
+                transition: "left 0.2s",
+              }}
+            />
+          </div>
+        </label>
+
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            color: "white",
+            cursor: "pointer",
+            userSelect: "none",
+          }}
+        >
+          Street Lines
+          <div
+            style={{
+              width: "40px",
+              height: "20px",
+              backgroundColor: showPolylines ? "#1976d2" : "#666",
+              borderRadius: "10px",
+              position: "relative",
+              transition: "background-color 0.2s",
+              cursor: "pointer",
+            }}
+            onClick={onTogglePolylines}
+          >
+            <div
+              style={{
+                width: "16px",
+                height: "16px",
+                backgroundColor: "white",
+                borderRadius: "50%",
+                position: "absolute",
+                top: "2px",
+                left: showPolylines ? "22px" : "2px",
+                transition: "left 0.2s",
+              }}
+            />
+          </div>
+        </label>
+      </div>
+    </>
+  );
+};
+
 function MapVisualization({ height, width }: MapVisualizationProps) {
   const [points, setPoints] = useState<PointData[]>([]);
+  const [streetNames, setStreetNames] = useState<string[]>([]);
+  const [showMarkers, setShowMarkers] = useState(true);
+  const [showPolylines, setShowPolylines] = useState(true);
 
-  // Add CSS for markers
+  // CSS for markers
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
@@ -73,9 +234,13 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
   // Load points data
   useEffect(() => {
     setPoints(samplePoints as PointData[]);
+    const uniqueStreets = [
+      ...new Set((samplePoints as PointData[]).map((p) => p.street_name)),
+    ];
+    setStreetNames(uniqueStreets);
   }, []);
 
-  // Function to interpolate between two points
+  // Interpolation function
   const interpolatePoints = (
     start: PointData,
     end: PointData,
@@ -92,17 +257,19 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
     return points;
   };
 
-  // Function to create gradient line segments between points
-  const renderLineSegments = () => {
-    return points.slice(0, -1).map((point, index) => {
-      const nextPoint = points[index + 1];
-      const segments = interpolatePoints(point, nextPoint, 10); // Create 10 segments for smooth gradient
+  // Function to create gradient line segments for a street
+  const renderStreetLines = (streetName: string) => {
+    const streetPoints = points.filter((p) => p.street_name === streetName);
+
+    return streetPoints.slice(0, -1).map((point, index) => {
+      const nextPoint = streetPoints[index + 1];
+      const segments = interpolatePoints(point, nextPoint, 10);
 
       return segments.slice(0, -1).map((segStart, segIndex) => {
         const segEnd = segments[segIndex + 1];
         return (
           <Polyline
-            key={`line-${index}-${segIndex}`}
+            key={`${streetName}-line-${index}-${segIndex}`}
             positions={[
               [segStart.lat, segStart.lon],
               [segEnd.lat, segEnd.lon],
@@ -119,36 +286,58 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
   };
 
   return (
-    <LeafletMap height={height} width={width}>
-      {/* Render line segments */}
-      {renderLineSegments()}
+    <div
+      style={{
+        position: "relative",
+        height: height || "500px",
+        width: width || "100%",
+      }}
+    >
+      <ControlPanel
+        showMarkers={showMarkers}
+        showPolylines={showPolylines}
+        onToggleMarkers={() => setShowMarkers((prev) => !prev)}
+        onTogglePolylines={() => setShowPolylines((prev) => !prev)}
+      />
+      <div style={{ height: "100%", width: "100%", position: "relative" }}>
+        <LeafletMap height="100%" width="100%">
+          {showPolylines &&
+            streetNames.map((streetName) => (
+              <React.Fragment key={streetName}>
+                {renderStreetLines(streetName)}
+              </React.Fragment>
+            ))}
 
-      {/* Render markers */}
-      {points.map((pt) => (
-        <Marker
-          key={pt.id}
-          position={[pt.lat, pt.lon]}
-          icon={createLightIcon(pt.lux)}
-        >
-          <Tooltip
-            direction="top"
-            offset={[0, -10]}
-            permanent={false}
-            opacity={1}
-          >
-            {pt.lux} lx
-          </Tooltip>
-          <Popup>
-            <div>
-              <strong>ID:</strong> {pt.id} <br />
-              <strong>Lux:</strong> {pt.lux} lx <br />
-              <strong>Location:</strong> [{pt.lat.toFixed(6)},{" "}
-              {pt.lon.toFixed(6)}]
-            </div>
-          </Popup>
-        </Marker>
-      ))}
-    </LeafletMap>
+          {showMarkers &&
+            points.map((pt) => (
+              <Marker
+                key={pt.id}
+                position={[pt.lat, pt.lon]}
+                icon={createLightIcon(pt.lux)}
+              >
+                <Tooltip
+                  direction="top"
+                  offset={[0, -10]}
+                  permanent={false}
+                  opacity={1}
+                >
+                  {pt.lux} lx
+                </Tooltip>
+                <Popup>
+                  <div>
+                    <strong>ID:</strong> {pt.id} <br />
+                    <strong>Street:</strong> {pt.street_name} <br />
+                    <strong>Barangay:</strong> {pt.barangay_name} <br />
+                    <strong>Lux:</strong> {pt.lux} lx <br />
+                    <strong>Location:</strong> [{pt.lat.toFixed(6)},{" "}
+                    {pt.lon.toFixed(6)}]
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+        </LeafletMap>
+      </div>
+    </div>
   );
 }
 
