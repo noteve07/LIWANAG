@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Street Light Illumination Mapping</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- chroma.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+  <!-- fontawesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    body { 
+      margin:0; 
+      font-family:'Inter', 'Segoe UI', Arial, sans-serif; 
+      background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%); 
+      color: #e2e8f0; 
+      overflow-x: hidden;
+    }
+
+    /* header */
+    #header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+      color:white;
+      padding:0 24px;
+      height:60px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+    }
+    #header-left {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-size:18px;
+      font-weight:600;
+    }
+    #header-left i { 
+      font-size:20px; 
+      color: #60a5fa;
+    }
+
+    #header-nav {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .nav-btn {
+      padding: 8px 16px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 8px;
+      color: #93c5fd;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .nav-btn:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #dbeafe;
+      transform: translateY(-1px);
+    }
+    
+    .nav-btn.active {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: white;
+    }
+
+    #header-right img { 
+      height:32px; 
+      margin-left:12px; 
+      border-radius: 4px;
+      opacity: 0.9;
+    }
+
+    /* container */
+    #container { display:flex; height: calc(100vh - 60px); }
+
+    /* sidebar */
+    #sidebar {
+      width:240px;
+      background: linear-gradient(180deg, #1e293b 0%, #475569 100%);
+      display:flex;
+      flex-direction:column;
+      padding: 20px 0;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+      border-right: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    
+    .nav-section {
+      margin-bottom: 24px;
+    }
+    
+    .nav-section-title {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 20px 12px;
+    }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      margin: 2px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      color: #cbd5e1;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    
+    .nav-item i {
+      width: 20px;
+      font-size: 16px;
+      color: #64748b;
+      transition: color 0.3s ease;
+    }
+    
+    .nav-item:hover {
+      background: rgba(59, 130, 246, 0.1);
+      color: #e2e8f0;
+      transform: translateX(4px);
+    }
+    
+    .nav-item:hover i {
+      color: #60a5fa;
+    }
+    
+    .nav-item.active {
+      background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%);
+      color: #dbeafe;
+      border-left: 3px solid #3b82f6;
+    }
+    
+    .nav-item.active i {
+      color: #60a5fa;
+    }
+
+    /* main content area */
+    #main-content { 
+      flex:1; 
+      border-radius: 0;
+      background: linear-gradient(135deg, #0c1426 0%, #1e293b 100%);
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    /* map specific */
+    #map { 
+      width: 100%;
+      height: calc(100vh - 120px);
+      border-radius: 8px;
+      background: linear-gradient(135deg, #0c1426 0%, #1e293b 100%);
+      min-height: 600px;
+    }
+
+    /* page content styling */
+    .page-content {
+      display: none;
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    .page-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header {
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin: 0 0 8px 0;
+    }
+
+    .page-subtitle {
+      font-size: 16px;
+      color: #94a3b8;
+      margin: 0;
+    }
+
+    /* Dashboard cards */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .dashboard-card {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: 12px;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s ease;
+    }
+
+    .dashboard-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin: 0;
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .card-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #60a5fa;
+      margin: 8px 0;
+    }
+
+    .card-change {
+      font-size: 14px;
+      color: #10b981;
+    }
+
+    .card-change.negative {
+      color: #ef4444;
+    }
+
+    /* Chart containers */
+    .chart-container {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(10px);
+    }
+
+    .chart-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 16px;
+    }
+
+    /* Table styling */
+    .data-table {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .data-table th {
+      background: rgba(30, 41, 59, 0.6);
+      color: #94a3b8;
+      font-weight: 600;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .data-table td {
+      color: #e2e8f0;
+    }
+
+    .data-table tbody tr:hover {
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    /* Status badges */
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-online {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-offline {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .status-maintenance {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(59, 130, 246, 0.1);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    /* legend */
+    .legend {
+      position:absolute;
+      bottom:24px;
+      right:24px;
+      background: rgba(30, 41, 59, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      color: #e2e8f0;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    .legend-color { 
+      width:20px; 
+      height:10px; 
+      display:inline-block; 
+      margin-right:4px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="header">
+    <div id="header-left">
+      <i class="fas fa-lightbulb"></i>
+      SmartLight Balanga
+    </div>
+    <div id="header-nav">
+      <div class="nav-btn" onclick="showPage('live-map')">Live Map</div>
+      <div class="nav-btn" onclick="showPage('dashboard')">Dashboard</div>
+      <div class="nav-btn" onclick="showPage('reports')">Reports</div>
+      <div class="nav-btn" onclick="showPage('settings')">Settings</div>
+    </div>
+    <div id="header-right">
+      <img src="Official_Seal_Balanga_City.png" alt="Balanga Seal">
+      <img src="Bataan_Peninsula_State_University_logo.png" alt="BPSU Logo">
+    </div>
+  </div>
+
+  <div id="container">
+    <div id="sidebar">
+      <div class="nav-section">
+        <div class="nav-section-title">Main</div>
+        <div class="nav-item active" onclick="showPage('live-map')">
+          <i class="fas fa-map"></i>
+          <span>Live Map</span>
+        </div>
+        <div class="nav-item" onclick="showPage('dashboard')">
+          <i class="fas fa-tachometer-alt"></i>
+          <span>Dashboard</span>
+        </div>
+        <div class="nav-item" onclick="showPage('street-lights')">
+          <i class="fas fa-lightbulb"></i>
+          <span>Street Lights</span>
+        </div>
+      </div>
+      
+      <div class="nav-section">
+        <div class="nav-section-title">Analytics</div>
+        <div class="nav-item" onclick="showPage('performance')">
+          <i class="fas fa-chart-line"></i>
+          <span>Performance</span>
+        </div>
+        <div class="nav-item" onclick="showPage('usage-stats')">
+          <i class="fas fa-chart-pie"></i>
+          <span>Usage Stats</span>
+        </div>
+        <div class="nav-item" onclick="showPage('history')">
+          <i class="fas fa-clock"></i>
+          <span>History</span>
+        </div>
+      </div>
+      
+      <div class="nav-section">
+        <div class="nav-section-title">Management</div>
+        <div class="nav-item" onclick="showPage('reports')">
+          <i class="fas fa-file-alt"></i>
+          <span>Reports</span>
+        </div>
+        <div class="nav-item" onclick="showPage('settings')">
+          <i class="fas fa-cog"></i>
+          <span>Settings</span>
+        </div>
+        <div class="nav-item" onclick="showPage('about')">
+          <i class="fas fa-info-circle"></i>
+          <span>About</span>
+        </div>
+      </div>
+    </div>
+    
+    <div id="main-content">
+      <!-- Live Map Page -->
+      <div id="live-map" class="page-content active" style="padding: 0; height: 100%;">
+        <div id="map"></div>
+      </div>
+
+      <!-- Dashboard Page -->
+      <div id="dashboard" class="page-content">
+        <div class="page-header">
+          <h1 class="page-title">Illumination Dashboard</h1>
+          <p class="page-subtitle">Street illumination analysis across Balanga City</p>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Well-Lit Streets</h3>
+              <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">
+                <i class="fas fa-sun"></i>
+              </div>
+            </div>
+            <div class="card-value">68.4%</div>
+            <div class="card-change">+3.2% vs last month</div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Poorly-Lit Streets</h3>
+              <div class="card-icon" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">
+                <i class="fas fa-moon"></i>
+              </div>
+            </div>
+            <div class="card-value">31.6%</div>
+            <div class="card-change negative">-3.2% improvement</div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Streets Surveyed</h3>
+              <div class="card-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">
+                <i class="fas fa-road"></i>
+              </div>
+            </div>
+            <div class="card-value">247</div>
+            <div class="card-change">89.4% coverage</div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Sensor Readings</h3>
+              <div class="card-icon" style="background: rgba(99, 102, 241, 0.2); color: #6366f1;">
+                <i class="fas fa-search"></i>
+              </div>
+            </div>
+            <div class="card-value">12,463</div>
+            <div class="card-change">Last 30 days</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 300px 1fr 1fr; gap: 24px; height: calc(100vh - 200px);">
+          <div class="chart-container" style="height: fit-content;">
+            <h3 class="chart-title">Street Illumination Distribution</h3>
+            <div style="max-width: 220px; margin: 0 auto;">
+              <canvas id="illuminationChart" width="220" height="220"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-container" style="height: fit-content;">
+            <h3 class="chart-title">Top 5 Priority Streets</h3>
+            <div style="padding: 16px 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                  <span style="color: #94a3b8; font-size: 12px; margin-right: 8px;">1.</span>
+                  <span style="color: #e2e8f0; font-weight: 500;">Jose P. Rizal Street</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #94a3b8; font-size: 12px;">25%</span>
+                  <div style="background: rgba(30, 41, 59, 0.6); border-radius: 4px; height: 6px; width: 40px; overflow: hidden;">
+                    <div style="background: linear-gradient(to right, #ef4444 75%, #10b981 25%); height: 100%; width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                  <span style="color: #94a3b8; font-size: 12px; margin-right: 8px;">2.</span>
+                  <span style="color: #e2e8f0; font-weight: 500;">Don Manuel Banzon Avenue</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #94a3b8; font-size: 12px;">32%</span>
+                  <div style="background: rgba(30, 41, 59, 0.6); border-radius: 4px; height: 6px; width: 40px; overflow: hidden;">
+                    <div style="background: linear-gradient(to right, #ef4444 68%, #10b981 32%); height: 100%; width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                  <span style="color: #94a3b8; font-size: 12px; margin-right: 8px;">3.</span>
+                  <span style="color: #e2e8f0; font-weight: 500;">Capitol Drive</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #94a3b8; font-size: 12px;">38%</span>
+                  <div style="background: rgba(30, 41, 59, 0.6); border-radius: 4px; height: 6px; width: 40px; overflow: hidden;">
+                    <div style="background: linear-gradient(to right, #ef4444 62%, #10b981 38%); height: 100%; width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                  <span style="color: #94a3b8; font-size: 12px; margin-right: 8px;">4.</span>
+                  <span style="color: #e2e8f0; font-weight: 500;">Roman Highway</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #94a3b8; font-size: 12px;">42%</span>
+                  <div style="background: rgba(30, 41, 59, 0.6); border-radius: 4px; height: 6px; width: 40px; overflow: hidden;">
+                    <div style="background: linear-gradient(to right, #ef4444 58%, #10b981 42%); height: 100%; width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <span style="color: #94a3b8; font-size: 12px; margin-right: 8px;">5.</span>
+                  <span style="color: #e2e8f0; font-weight: 500;">BPSU Road</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #94a3b8; font-size: 12px;">45%</span>
+                  <div style="background: rgba(30, 41, 59, 0.6); border-radius: 4px; height: 6px; width: 40px; overflow: hidden;">
+                    <div style="background: linear-gradient(to right, #ef4444 55%, #10b981 45%); height: 100%; width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-container" style="height: fit-content;">
+            <h3 class="chart-title">Top 5 Priority Barangays</h3>
+            <div style="padding: 16px 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                  <span style="color: #94a3b8; font-size: 12px; margin-right: 8px;">1.</span>
+                  <span style="color: #e2e8f0; font-weight: 500;">Pto. Rivas Lote</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #94a3b8; font-size: 12px;">45%</span>
+                  <div style="background: rgba(30, 41, 59, 0.6); border-radius: 4px; height: 6px; width: 40px; overflow: hidden;">
+                    <div style="background: linear-gradient(to right, #ef4444 55%, #10b981 45%); height: 100%; width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                  <span style="color: #94a3b8; font-size: 12px; margin-right: 8px;">2.</span>
+                  <span style="color: #e2e8f0; font-weight: 500;">Munting Batangas</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #94a3b8; font-size: 12px;">58%</span>
+                  <div style="background: rgba(30, 41, 59, 0.6); border-radius: 4px; height: 6px; width: 40px; overflow: hidden;">
+                    <div style="background: linear-gradient(to right, #ef4444 42%, #10b981 58%); height: 100%; width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                  <span style="color: #94a3b8; font-size: 12px; margin-right: 8px;">3.</span>
+                  <span style="color: #e2e8f0; font-weight: 500;">Villa Lina</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #94a3b8; font-size: 12px;">63%</span>
+                  <div style="background: rgba(30, 41, 59, 0.6); border-radius: 4px; height: 6px; width: 40px; overflow: hidden;">
+                    <div style="background: linear-gradient(to right, #ef4444 37%, #10b981 63%); height: 100%; width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                  <span style="color: #94a3b8; font-size: 12px; margin-right: 8px;">4.</span>
+                  <span style="color: #e2e8f0; font-weight: 500;">Camacho</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #94a3b8; font-size: 12px;">72%</span>
+                  <div style="background: rgba(30, 41, 59, 0.6); border-radius: 4px; height: 6px; width: 40px; overflow: hidden;">
+                    <div style="background: linear-gradient(to right, #ef4444 28%, #10b981 72%); height: 100%; width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <span style="color: #94a3b8; font-size: 12px; margin-right: 8px;">5.</span>
+                  <span style="color: #e2e8f0; font-weight: 500;">Central</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #94a3b8; font-size: 12px;">81%</span>
+                  <div style="background: rgba(30, 41, 59, 0.6); border-radius: 4px; height: 6px; width: 40px; overflow: hidden;">
+                    <div style="background: linear-gradient(to right, #ef4444 19%, #10b981 81%); height: 100%; width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Street Lights Management Page -->
+      <div id="street-lights" class="page-content">
+        <div class="page-header">
+          <h1 class="page-title">Street Lights Management</h1>
+          <p class="page-subtitle">Monitor and control individual street lights</p>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+          <button class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add New Light
+          </button>
+          <button class="btn btn-secondary">
+            <i class="fas fa-download"></i>
+            Export Data
+          </button>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Light ID</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Brightness</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>SL-001</td>
+              <td>Jose P. Rizal Street</td>
+              <td><span class="status-badge status-online">Online</span></td>
+              <td>85%</td>
+              <td>2 mins ago</td>
+              <td>
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                  <i class="fas fa-cog"></i>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>SL-002</td>
+              <td>Capitol Drive</td>
+              <td><span class="status-badge status-online">Online</span></td>
+              <td>92%</td>
+              <td>1 min ago</td>
+              <td>
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                  <i class="fas fa-cog"></i>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>SL-003</td>
+              <td>Bataan Peninsula Avenue</td>
+              <td><span class="status-badge status-maintenance">Maintenance</span></td>
+              <td>0%</td>
+              <td>45 mins ago</td>
+              <td>
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                  <i class="fas fa-cog"></i>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>SL-004</td>
+              <td>Don Manuel Banzon Avenue</td>
+              <td><span class="status-badge status-offline">Offline</span></td>
+              <td>0%</td>
+              <td>2 hours ago</td>
+              <td>
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                  <i class="fas fa-cog"></i>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>SL-005</td>
+              <td>Roman Highway</td>
+              <td><span class="status-badge status-online">Online</span></td>
+              <td>78%</td>
+              <td>5 mins ago</td>
+              <td>
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                  <i class="fas fa-cog"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Performance Page -->
+      <div id="performance" class="page-content">
+        <div class="page-header">
+          <h1 class="page-title">Performance Analytics</h1>
+          <p class="page-subtitle">Monitor system performance and efficiency metrics</p>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Average Response Time</h3>
+              <div class="card-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">
+                <i class="fas fa-tachometer-alt"></i>
+              </div>
+            </div>
+            <div class="card-value">1.2s</div>
+            <div class="card-change">-0.3s improvement</div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Uptime</h3>
+              <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">
+                <i class="fas fa-clock"></i>
+              </div>
+            </div>
+            <div class="card-value">99.8%</div>
+            <div class="card-change">Last 30 days</div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Network Coverage</h3>
+              <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">
+                <i class="fas fa-wifi"></i>
+              </div>
+            </div>
+            <div class="card-value">94.5%</div>
+            <div class="card-change">+2.1% this month</div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Error Rate</h3>
+              <div class="card-icon" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
+            </div>
+            <div class="card-value">0.2%</div>
+            <div class="card-change">-0.1% improvement</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <h3 class="chart-title">Performance Metrics Over Time</h3>
+          <canvas id="performanceChart" width="400" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Usage Stats Page -->
+      <div id="usage-stats" class="page-content">
+        <div class="page-header">
+          <h1 class="page-title">Usage Statistics</h1>
+          <p class="page-subtitle">Detailed usage patterns and consumption data</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+          <div class="chart-container">
+            <h3 class="chart-title">Hourly Usage Pattern</h3>
+            <canvas id="hourlyUsageChart" width="400" height="200"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3 class="chart-title">Monthly Energy Consumption</h3>
+            <canvas id="monthlyChart" width="400" height="200"></canvas>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Peak Hours</h3>
+              <div class="card-icon" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">
+                <i class="fas fa-sun"></i>
+              </div>
+            </div>
+            <div class="card-value">6-8 PM</div>
+            <div class="card-change">Highest usage</div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Off-Peak Hours</h3>
+              <div class="card-icon" style="background: rgba(99, 102, 241, 0.2); color: #6366f1;">
+                <i class="fas fa-moon"></i>
+              </div>
+            </div>
+            <div class="card-value">2-5 AM</div>
+            <div class="card-change">Lowest usage</div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Daily Average</h3>
+              <div class="card-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">
+                <i class="fas fa-chart-bar"></i>
+              </div>
+            </div>
+            <div class="card-value">245 kWh</div>
+            <div class="card-change">-12 kWh vs last month</div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Cost Savings</h3>
+              <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">
+                <i class="fas fa-dollar-sign"></i>
+              </div>
+            </div>
+            <div class="card-value">₱28,450</div>
+            <div class="card-change">This month</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History Page -->
+      <div id="history" class="page-content">
+        <div class="page-header">
+          <h1 class="page-title">System History</h1>
+          <p class="page-subtitle">Track changes and events in your lighting system</p>
+        </div>
+
+        <div class="chart-container">
+          <h3 class="chart-title">Recent Activities</h3>
+          <div style="max-height: 400px; overflow-y: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Event</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>2024-01-15 14:32</td>
+                  <td>Light maintenance completed</td>
+                  <td>SL-003 - Bataan Peninsula Avenue</td>
+                  <td><span class="status-badge status-online">Completed</span></td>
+                </tr>
+                <tr>
+                  <td>2024-01-15 13:45</td>
+                  <td>Brightness adjusted</td>
+                  <td>SL-012 - Jose P. Rizal Street</td>
+                  <td><span class="status-badge status-online">Applied</span></td>
+                </tr>
+                <tr>
+                  <td>2024-01-15 12:10</td>
+                  <td>New light installed</td>
+                  <td>SL-247 - Capitol Drive</td>
+                  <td><span class="status-badge status-online">Active</span></td>
+                </tr>
+                <tr>
+                  <td>2024-01-15 09:22</td>
+                  <td>System backup completed</td>
+                  <td>Central Server</td>
+                  <td><span class="status-badge status-online">Success</span></td>
+                </tr>
+                <tr>
+                  <td>2024-01-14 18:15</td>
+                  <td>Emergency lighting activated</td>
+                  <td>Downtown District</td>
+                  <td><span class="status-badge status-maintenance">Resolved</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports Page -->
+      <div id="reports" class="page-content">
+        <div class="page-header">
+          <h1 class="page-title">Reports</h1>
+          <p class="page-subtitle">Generate and download comprehensive reports</p>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Energy Report</h3>
+              <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">
+                <i class="fas fa-chart-line"></i>
+              </div>
+            </div>
+            <p style="color: #94a3b8; margin: 8px 0;">Monthly energy consumption and efficiency analysis</p>
+            <button class="btn btn-primary">
+              <i class="fas fa-download"></i>
+              Download PDF
+            </button>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Maintenance Report</h3>
+              <div class="card-icon" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">
+                <i class="fas fa-tools"></i>
+              </div>
+            </div>
+            <p style="color: #94a3b8; margin: 8px 0;">Maintenance activities and equipment status</p>
+            <button class="btn btn-primary">
+              <i class="fas fa-download"></i>
+              Download PDF
+            </button>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Performance Report</h3>
+              <div class="card-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">
+                <i class="fas fa-tachometer-alt"></i>
+              </div>
+            </div>
+            <p style="color: #94a3b8; margin: 8px 0;">System performance metrics and uptime analysis</p>
+            <button class="btn btn-primary">
+              <i class="fas fa-download"></i>
+              Download PDF
+            </button>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3 class="card-title">Cost Analysis</h3>
+              <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">
+                <i class="fas fa-dollar-sign"></i>
+              </div>
+            </div>
+            <p style="color: #94a3b8; margin: 8px 0;">Financial analysis and cost savings report</p>
+            <button class="btn btn-primary">
+              <i class="fas fa-download"></i>
+              Download PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Page -->
+      <div id="settings" class="page-content">
+        <div class="page-header">
+          <h1 class="page-title">Settings</h1>
+          <p class="page-subtitle">Configure your smart lighting system</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+          <div class="chart-container">
+            <h3 class="chart-title">System Configuration</h3>
+            <div style="space-y: 16px;">
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; color: #94a3b8; margin-bottom: 8px;">Auto Brightness</label>
+                <input type="range" min="0" max="100" value="75" style="width: 100%;">
+              </div>
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; color: #94a3b8; margin-bottom: 8px;">Schedule Mode</label>
+                <select style="width: 100%; padding: 8px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: #e2e8f0;">
+                  <option>Automatic</option>
+                  <option>Manual</option>
+                  <option>Sensor-based</option>
+                </select>
+              </div>
+              <div style="margin-bottom: 16px;">
+                <label style="display: flex; align-items: center; color: #94a3b8;">
+                  <input type="checkbox" checked style="margin-right: 8px;">
+                  Enable Energy Saving Mode
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-container">
+            <h3 class="chart-title">Notifications</h3>
+            <div style="space-y: 16px;">
+              <div style="margin-bottom: 16px;">
+                <label style="display: flex; align-items: center; color: #94a3b8;">
+                  <input type="checkbox" checked style="margin-right: 8px;">
+                  Email notifications
+                </label>
+              </div>
+              <div style="margin-bottom: 16px;">
+                <label style="display: flex; align-items: center; color: #94a3b8;">
+                  <input type="checkbox" style="margin-right: 8px;">
+                  SMS alerts
+                </label>
+              </div>
+              <div style="margin-bottom: 16px;">
+                <label style="display: flex; align-items: center; color: #94a3b8;">
+                  <input type="checkbox" checked style="margin-right: 8px;">
+                  Maintenance reminders
+                </label>
+              </div>
+              <div style="margin-top: 24px;">
+                <button class="btn btn-primary">Save Settings</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- About Page -->
+      <div id="about" class="page-content">
+        <div class="page-header">
+          <h1 class="page-title">About SmartLight Balanga</h1>
+          <p class="page-subtitle">Intelligent street lighting system for Balanga City</p>
+        </div>
+
+        <div class="chart-container">
+          <div style="text-align: center; padding: 40px;">
+            <i class="fas fa-lightbulb" style="font-size: 64px; color: #60a5fa; margin-bottom: 24px;"></i>
+            <h2 style="color: #e2e8f0; margin-bottom: 16px;">SmartLight Balanga v2.1.0</h2>
+            <p style="color: #94a3b8; max-width: 600px; margin: 0 auto 32px;">
+              An intelligent street lighting management system designed for Balanga City. 
+              This system provides real-time monitoring, energy optimization, and automated 
+              maintenance scheduling for the city's street lighting infrastructure.
+            </p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-top: 40px;">
+              <div>
+                <h4 style="color: #60a5fa; margin-bottom: 8px;">Developed by</h4>
+                <p style="color: #e2e8f0;">Bataan Peninsula State University</p>
+              </div>
+              <div>
+                <h4 style="color: #60a5fa; margin-bottom: 8px;">Version</h4>
+                <p style="color: #e2e8f0;">2.1.0 (Build 2024.01)</p>
+              </div>
+              <div>
+                <h4 style="color: #60a5fa; margin-bottom: 8px;">Last Updated</h4>
+                <p style="color: #e2e8f0;">January 15, 2024</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Page Navigation System
+    function showPage(pageId) {
+      // Hide all pages
+      document.querySelectorAll('.page-content').forEach(page => {
+        page.classList.remove('active');
+      });
+      
+      // Show selected page
+      document.getElementById(pageId).classList.add('active');
+      
+      // Update navigation active states
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // Set active nav item
+      const navItem = document.querySelector(`[onclick="showPage('${pageId}')"]`);
+      if (navItem) navItem.classList.add('active');
+      
+      // Initialize charts for specific pages
+      if (pageId === 'dashboard') {
+        setTimeout(() => {
+          initializeDashboardCharts();
+        }, 100);
+      } else if (pageId === 'performance') {
+        setTimeout(() => {
+          initializePerformanceCharts();
+        }, 100);
+      } else if (pageId === 'usage-stats') {
+        setTimeout(() => {
+          initializeUsageCharts();
+        }, 100);
+      } else if (pageId === 'live-map') {
+        setTimeout(() => {
+          if (map) {
+            map.invalidateSize();
+            map.setView([14.6760, 120.5328], 15);
+          }
+        }, 200);
+      }
+    }
+
+    // Initialize Maps
+    var map = L.map('map', {
+      minZoom: 14,
+      maxZoom: 18
+    }).setView([14.6760, 120.5328], 15);
+
+    // Set max bounds to allow panning within larger Balanga area
+    var balangaBounds = [
+      [14.6400, 120.5000], // Southwest - wider area
+      [14.7100, 120.5600]  // Northeast - wider area
+    ];
+    map.setMaxBounds(balangaBounds);
+
+    L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+      maxZoom: 18
+    }).addTo(map);
+
+    var gradient = chroma.scale(['#4d4d00', '#ffcc00']).mode('lab');
+
+    fetch('balanga_road1.geojson')
+      .then(res=>res.json())
+      .then(data=>{
+        // First, determine which roads have no data (10%)
+        data.features.forEach(f=>{
+          if(!f.properties.illumination){
+            if(Math.random() < 0.1) {
+              f.properties.hasData = false; // 10% no data
+              f.properties.illumination = null;
+            } else {
+              f.properties.hasData = true;
+              if(Math.random() < 0.8) {
+                f.properties.illumination = Math.floor(Math.random() * 30); // 80% dim
+              } else {
+                f.properties.illumination = Math.floor(70 + Math.random() * 30); // 20% bright
+              }
+            }
+          } else {
+            f.properties.hasData = true;
+          }
+        });
+
+        // Then, redistribute the bright ones to prefer major roads (only for roads with data)
+        const roadsWithData = data.features.filter(f => f.properties.hasData);
+        const brightFeatures = roadsWithData.filter(f => f.properties.illumination >= 70);
+        
+        // Reset all roads with data to dim first
+        roadsWithData.forEach(f => {
+          if(f.properties.illumination >= 70) {
+            f.properties.illumination = Math.floor(Math.random() * 30);
+          }
+        });
+
+        // Now place bright lights preferentially on major roads (only those with data)
+        const majorRoadsWithData = roadsWithData.filter(f => {
+          return f.properties.highway === 'primary' || 
+                 f.properties.highway === 'secondary' || 
+                 f.properties.highway === 'trunk' ||
+                 f.properties.highway === 'tertiary' ||
+                 (f.properties.name && f.properties.name.toLowerCase().includes('road')) ||
+                 (f.properties.name && f.properties.name.toLowerCase().includes('street')) ||
+                 (f.properties.name && f.properties.name.toLowerCase().includes('avenue'));
+        });
+
+        // Place bright lights on major roads first
+        let brightsToPlace = brightFeatures.length;
+        let placedOnMajor = 0;
+        
+        majorRoadsWithData.forEach(road => {
+          if(placedOnMajor < brightsToPlace * 0.7 && Math.random() < 0.3) { // 70% of brights go to major roads
+            road.properties.illumination = Math.floor(70 + Math.random() * 30);
+            placedOnMajor++;
+          }
+        });
+
+        // Place remaining brights randomly on roads with data
+        const remainingBrights = brightsToPlace - placedOnMajor;
+        const dimRoadsWithData = roadsWithData.filter(f => f.properties.illumination < 70);
+        for(let i = 0; i < remainingBrights && i < dimRoadsWithData.length; i++) {
+          const randomIndex = Math.floor(Math.random() * dimRoadsWithData.length);
+          if(dimRoadsWithData[randomIndex].properties.illumination < 70) {
+            dimRoadsWithData[randomIndex].properties.illumination = Math.floor(70 + Math.random() * 30);
+          }
+        }
+
+        L.geoJSON(data,{
+          style:f=>({ color:'#333333', weight:6, opacity:0.3 })
+        }).addTo(map);
+
+         // Add blue styling for rivers/waterways
+         L.geoJSON(data,{
+           filter: f => f.properties.waterway || f.properties.natural === 'water' || 
+                        f.properties.water || f.properties.landuse === 'reservoir' ||
+                        (f.properties.name && f.properties.name.toLowerCase().includes('river')),
+           style: f => ({
+             color: '#1e40af',
+             weight: 6,
+             opacity: 0.8,
+             lineCap: 'round',
+             lineJoin: 'round'
+           }),
+           onEachFeature: (f,l) => {
+             const coords = f.geometry.coordinates[0];
+             const lat = coords[1].toFixed(6);
+             const lng = coords[0].toFixed(6);
+             const name = f.properties.name || 'River/Stream';
+             const popupContent = `
+               <div style="font-family: 'Inter', sans-serif; color: #1e293b;">
+                 <h4 style="margin: 0 0 8px 0; color: #1e40af;">💧 ${name}</h4>
+                 <p style="margin: 4px 0; font-size: 12px;"><strong>Type:</strong> Water body</p>
+                 <p style="margin: 4px 0; font-size: 12px;"><strong>Coordinates:</strong> ${lat}, ${lng}</p>
+               </div>
+             `;
+             l.bindPopup(popupContent);
+           }
+         }).addTo(map);
+
+         // Gray roads for no data
+         L.geoJSON(data,{
+           filter: f => !f.properties.hasData,
+           style: f => ({
+             color: '#555555',
+             weight: 4,
+             opacity: 0.6,
+             lineCap: 'round',
+             lineJoin: 'round'
+           }),
+           onEachFeature: (f,l) => {
+             const coords = f.geometry.coordinates[0];
+             const lat = coords[1].toFixed(6);
+             const lng = coords[0].toFixed(6);
+             const streetName = f.properties.name || f.properties.highway || 'Unnamed Road';
+             const popupContent = `
+               <div style="font-family: 'Inter', sans-serif; color: #1e293b;">
+                 <h4 style="margin: 0 0 8px 0; color: #64748b;">🚫 ${streetName}</h4>
+                 <p style="margin: 4px 0; font-size: 12px;"><strong>Status:</strong> No data available</p>
+                 <p style="margin: 4px 0; font-size: 12px;"><strong>Road Type:</strong> ${f.properties.highway || 'Unknown'}</p>
+                 <p style="margin: 4px 0; font-size: 12px;"><strong>Coordinates:</strong> ${lat}, ${lng}</p>
+               </div>
+             `;
+             l.bindPopup(popupContent);
+           }
+         }).addTo(map);
+
+         // Illuminated roads - only those with data
+         L.geoJSON(data,{
+           filter: f => f.properties.hasData,
+           style:f=>{
+             const illumination = f.properties.illumination / 100;
+             const opacity = 0.3 + (0.5 * illumination);
+             return { 
+               color:gradient(illumination).hex(), 
+               weight:4, 
+               opacity:opacity, 
+               lineCap:'round', 
+               lineJoin:'round'
+             };
+           },
+           onEachFeature:(f,l)=>{
+             const coords = f.geometry.coordinates[0];
+             const lat = coords[1].toFixed(6);
+             const lng = coords[0].toFixed(6);
+             const streetName = f.properties.name || f.properties.highway || 'Unnamed Road';
+             const illumination = f.properties.illumination;
+             const status = illumination >= 70 ? '🔆 Bright' : illumination >= 40 ? '🔅 Medium' : '🌙 Dim';
+             
+             const popupContent = `
+               <div style="font-family: 'Inter', sans-serif; color: #1e293b;">
+                 <h4 style="margin: 0 0 8px 0; color: ${gradient(illumination/100).hex()};">💡 ${streetName}</h4>
+                 <p style="margin: 4px 0; font-size: 12px;"><strong>Illumination:</strong> ${illumination}% ${status}</p>
+                 <p style="margin: 4px 0; font-size: 12px;"><strong>Road Type:</strong> ${f.properties.highway || 'Unknown'}</p>
+                 <p style="margin: 4px 0; font-size: 12px;"><strong>Coordinates:</strong> ${lat}, ${lng}</p>
+               </div>
+             `;
+             l.bindPopup(popupContent);
+           }
+         }).addTo(map);
+
+        var legend = L.control({position:'bottomright'});
+        legend.onAdd = function(map){
+          var div = L.DomUtil.create('div','legend');
+          for(var i=0;i<=100;i+=20){
+            div.innerHTML += '<span class="legend-color" style="background:'+gradient(i/100).hex()+'"></span>';
+          }
+          div.innerHTML += '<div style="text-align:right; font-size:10px;">0 20 40 60 80 100</div>';
+          return div;
+        }
+        legend.addTo(map);
+      })
+      .catch(err=>console.error(err));
+
+    // Chart Initialization Functions
+    function initializeDashboardCharts() {
+      // Illumination Distribution Chart
+      const illuminationCtx = document.getElementById('illuminationChart');
+      if (illuminationCtx && !illuminationCtx.chart) {
+        illuminationCtx.chart = new Chart(illuminationCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Well-Lit Streets', 'Poorly-Lit Streets'],
+            datasets: [{
+              data: [68.4, 31.6],
+              backgroundColor: ['#10b981', '#ef4444'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { 
+                labels: { color: '#e2e8f0' },
+                position: 'bottom'
+              }
+            },
+            cutout: '60%'
+          }
+        });
+      }
+    }
+
+    function initializePerformanceCharts() {
+      const performanceCtx = document.getElementById('performanceChart');
+      if (performanceCtx && !performanceCtx.chart) {
+        performanceCtx.chart = new Chart(performanceCtx, {
+          type: 'line',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [
+              {
+                label: 'Uptime %',
+                data: [99.2, 99.5, 99.8, 99.6, 99.9, 99.8],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4
+              },
+              {
+                label: 'Response Time (s)',
+                data: [1.8, 1.5, 1.3, 1.4, 1.1, 1.2],
+                borderColor: '#60a5fa',
+                backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                tension: 0.4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { labels: { color: '#e2e8f0' } }
+            },
+            scales: {
+              x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+              y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
+            }
+          }
+        });
+      }
+    }
+
+    function initializeUsageCharts() {
+      // Hourly Usage Chart
+      const hourlyCtx = document.getElementById('hourlyUsageChart');
+      if (hourlyCtx && !hourlyCtx.chart) {
+        hourlyCtx.chart = new Chart(hourlyCtx, {
+          type: 'bar',
+          data: {
+            labels: ['00', '04', '08', '12', '16', '20'],
+            datasets: [{
+              label: 'Usage (kWh)',
+              data: [45, 30, 65, 80, 120, 150],
+              backgroundColor: 'rgba(96, 165, 250, 0.7)',
+              borderColor: '#60a5fa',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { labels: { color: '#e2e8f0' } }
+            },
+            scales: {
+              x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+              y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
+            }
+          }
+        });
+      }
+
+      // Monthly Chart
+      const monthlyCtx = document.getElementById('monthlyChart');
+      if (monthlyCtx && !monthlyCtx.chart) {
+        monthlyCtx.chart = new Chart(monthlyCtx, {
+          type: 'line',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+              label: 'Consumption (MWh)',
+              data: [8.2, 7.8, 8.5, 9.1, 8.9, 7.6],
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { labels: { color: '#e2e8f0' } }
+            },
+            scales: {
+              x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+              y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
+            }
+          }
+        });
+      }
+    }
+
+    // Initialize default page
+    document.addEventListener('DOMContentLoaded', () => {
+      showPage('live-map');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Balanga Roads Viewer - Multi Theme</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+        }
+        
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        
+        .control-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            background: white;
+            padding: 16px;
+            max-width: 280px;
+            border: 1px solid #ccc;
+            font-size: 12px;
+        }
+        
+        .control-panel h3 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            font-weight: 600;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 6px;
+        }
+        
+        .map-themes {
+            margin-bottom: 16px;
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+        
+        .map-themes h4 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .theme-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .theme-grid-5 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+        
+        .theme-btn {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            background: white;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .theme-btn:hover {
+            border-color: #999;
+        }
+        
+        .theme-btn.active {
+            background: #333;
+            color: white;
+            border-color: #333;
+        }
+        
+        .stats-section {
+            margin-bottom: 12px;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #eee;
+        }
+        
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+            font-size: 11px;
+        }
+        
+        .stats-label {
+            font-weight: 500;
+        }
+        
+        .stats-value {
+            font-weight: 600;
+        }
+        
+        .toggle-section {
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+        
+        .toggle-section h4 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 6px 0;
+            padding: 4px;
+            border: 1px solid #eee;
+        }
+        
+        .toggle-label {
+            font-weight: 500;
+            font-size: 11px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 32px;
+            height: 16px;
+            background: #ddd;
+            cursor: pointer;
+        }
+        
+        .toggle-switch.active {
+            background: #666;
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: white;
+        }
+        
+        .toggle-switch.active::after {
+            transform: translateX(16px);
+        }
+        
+        .road-types-section {
+            max-height: 220px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #eee;
+        }
+        
+        .road-types-section h4 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            background: inherit;
+            padding-bottom: 4px;
+        }
+        
+        .road-type-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 4px 0;
+            padding: 6px 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            border-left: 3px solid transparent;
+        }
+        
+        .road-type-info {
+            flex: 1;
+        }
+        
+        .road-type-name {
+            font-weight: 600;
+            font-size: 11px;
+        }
+        
+        .road-count {
+            font-size: 10px;
+            opacity: 0.9;
+        }
+        
+        .small-toggle {
+            width: 30px;
+            height: 16px;
+            border-radius: 8px;
+        }
+        
+        .small-toggle::after {
+            width: 12px;
+            height: 12px;
+            top: 2px;
+            left: 2px;
+        }
+        
+        .small-toggle.active::after {
+            transform: translateX(14px);
+        }
+        
+        .status-bar {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            font-size: 11px;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            max-width: 160px;
+            border: 1px solid #ccc;
+        }
+        
+        .legend h4 {
+            margin: 0 0 6px 0;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 3px 0;
+            font-size: 9px;
+        }
+        
+        .legend-line {
+            width: 18px;
+            height: 3px;
+            margin-right: 6px;
+            border-radius: 2px;
+        }
+        
+        /* Night satellite styling - mix of satellite + dark */
+        .night-satellite-base {
+            filter: hue-rotate(210deg) saturate(0.3) brightness(0.4) contrast(1.3);
+            opacity: 0.7;
+        }
+        
+        .night-dark-overlay {
+            mix-blend-mode: multiply;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="control-panel">
+        <h3>🗺️ Main Roads Viewer</h3>
+        
+        <div class="map-themes">
+            <h4>🎨 Map Themes</h4>
+            <div class="theme-grid-5">
+                <button class="theme-btn active" onclick="switchTheme('default')">Default</button>
+                <button class="theme-btn" onclick="switchTheme('satellite')">Satellite</button>
+                <button class="theme-btn" onclick="switchTheme('road')">Road</button>
+                <button class="theme-btn" onclick="switchTheme('dark')">Dark</button>
+                <button class="theme-btn" onclick="switchTheme('night')">🌙 Night</button>
+            </div>
+        </div>
+        
+        <div class="stats-section">
+            <div class="stats-item">
+                <span class="stats-label">📊 Total Roads:</span>
+                <span class="stats-value" id="total-roads">Loading...</span>
+            </div>
+            <div class="stats-item">
+                <span class="stats-label">👁️ Visible:</span>
+                <span class="stats-value" id="visible-roads">0</span>
+            </div>
+            <div class="stats-item">
+                <span class="stats-label">🏷️ Types:</span>
+                <span class="stats-value" id="road-types-count">0</span>
+            </div>
+        </div>
+        
+        <div class="toggle-section">
+            <h4>🛣️ Road Layers</h4>
+            <div class="toggle-item">
+                <span class="toggle-label">Show Roads</span>
+                <div class="toggle-switch active" id="roads-toggle" onclick="toggleRoads()"></div>
+            </div>
+        </div>
+        
+        <div class="road-types-section">
+            <h4>🏗️ Road Types</h4>
+            <div id="road-types">
+                <!-- Road types will be populated here -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar" id="status-bar">
+        Loading main roads data...
+    </div>
+    
+    <div class="legend">
+        <h4>Legend</h4>
+        <div class="legend-item">
+            <div class="legend-line" style="background-color: #e74c3c;"></div>
+            <span>Primary</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line" style="background-color: #e67e22;"></div>
+            <span>Secondary</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line" style="background-color: #f39c12;"></div>
+            <span>Tertiary</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line" style="background-color: #3498db;"></div>
+            <span>Residential</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line" style="background-color: #9b59b6;"></div>
+            <span>Service/Other</span>
+        </div>
+    </div>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([14.6697, 120.5369], 13);
+
+        // Global variables
+        let roadsData = null;
+        let roadsLayerGroup = null;
+        let roadTypeGroups = new Map();
+        let roadTypes = new Map();
+        let visibleRoadTypes = new Set();
+        let roadsVisible = true;
+        let currentTheme = 'default';
+
+        // Base layers with different themes
+        const baseLayers = {
+            default: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }),
+            satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri',
+                maxZoom: 18
+            }),
+            road: L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team',
+                maxZoom: 18
+            }),
+            dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors © CARTO',
+                maxZoom: 18
+            }),
+            night: L.layerGroup([
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: '© Esri Satellite + Dark Overlay',
+                    maxZoom: 18,
+                    className: 'night-satellite-base'
+                }),
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+                    attribution: '',
+                    maxZoom: 18,
+                    className: 'night-dark-overlay'
+                })
+            ])
+        };
+
+        // Start with default theme
+        baseLayers.default.addTo(map);
+
+        // Road type colors
+        const roadColors = {
+            'primary': '#e74c3c',
+            'secondary': '#e67e22',
+            'tertiary': '#f39c12',
+            'residential': '#3498db',
+            'unclassified': '#95a5a6',
+            'service': '#9b59b6',
+            'footway': '#8e44ad',
+            'pedestrian': '#8e44ad',
+            'cycleway': '#16a085',
+            'path': '#7f8c8d',
+            'track': '#7f8c8d',
+            'steps': '#8e44ad',
+            'bridleway': '#795548',
+            'living_street': '#3498db'
+        };
+
+        // Function to get road style
+        function getRoadStyle(highway) {
+            const color = roadColors[highway] || '#34495e';
+            const weight = {
+                'primary': 4,
+                'secondary': 3,
+                'tertiary': 2,
+                'residential': 1.5,
+                'unclassified': 1.5
+            }[highway] || 1;
+            
+            return {
+                color: color,
+                weight: weight,
+                opacity: 0.8,
+                lineCap: 'round',
+                lineJoin: 'round'
+            };
+        }
+
+        // Function to switch map themes
+        function switchTheme(theme) {
+            console.log(`🎨 SWITCHING theme to: ${theme}`);
+            
+            // Remove current base layers
+            Object.values(baseLayers).forEach(layer => {
+                if (map.hasLayer(layer)) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // Add new theme layer
+            baseLayers[theme].addTo(map);
+            currentTheme = theme;
+            
+            // Update button states
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            const themeEmojis = {
+                'default': '🗺️',
+                'satellite': '🛰️', 
+                'road': '🛣️',
+                'dark': '🌑',
+                'night': '🌙🛰️'
+            };
+            
+            const themeDescriptions = {
+                'default': 'Default OSM',
+                'satellite': 'Satellite imagery', 
+                'road': 'Road-focused',
+                'dark': 'Dark theme',
+                'night': 'Night satellite (satellite + dark mix)'
+            };
+            
+            document.getElementById('status-bar').textContent = `Switched to ${themeDescriptions[theme]} ${themeEmojis[theme] || ''}`;
+            console.log(`✅ Theme switched to: ${themeDescriptions[theme]} ${themeEmojis[theme] || ''}`);
+        }
+
+        // Function to toggle roads visibility
+        function toggleRoads() {
+            const toggle = document.getElementById('roads-toggle');
+            
+            if (roadsVisible) {
+                if (roadsLayerGroup) {
+                    map.removeLayer(roadsLayerGroup);
+                }
+                toggle.classList.remove('active');
+                roadsVisible = false;
+                console.log('🛣️ Roads hidden');
+                document.getElementById('status-bar').textContent = 'Roads hidden';
+            } else {
+                if (roadsLayerGroup) {
+                    map.addLayer(roadsLayerGroup);
+                }
+                toggle.classList.add('active');
+                roadsVisible = true;
+                console.log('🛣️ Roads shown');
+                document.getElementById('status-bar').textContent = 'Roads shown';
+            }
+            updateVisibleCount();
+        }
+
+        // Function to toggle road type visibility
+        function toggleRoadType(highway) {
+            const group = roadTypeGroups.get(highway);
+            if (!group) return;
+
+            if (visibleRoadTypes.has(highway)) {
+                visibleRoadTypes.delete(highway);
+                if (roadsLayerGroup && roadsVisible) {
+                    roadsLayerGroup.removeLayer(group);
+                }
+                console.log(`👁️ HIDING road type: ${highway} (${roadTypes.get(highway)} roads)`);
+            } else {
+                visibleRoadTypes.add(highway);
+                if (roadsLayerGroup && roadsVisible) {
+                    roadsLayerGroup.addLayer(group);
+                }
+                console.log(`👁️ SHOWING road type: ${highway} (${roadTypes.get(highway)} roads)`);
+            }
+            updateVisibleCount();
+        }
+
+        // Function to handle each road feature
+        function onEachRoad(feature, layer) {
+            const props = feature.properties;
+            const highway = props.highway || 'unknown';
+            
+            // Count road types
+            if (!roadTypes.has(highway)) {
+                roadTypes.set(highway, 0);
+                roadTypeGroups.set(highway, L.layerGroup());
+            }
+            roadTypes.set(highway, roadTypes.get(highway) + 1);
+            
+            // Add to appropriate group
+            roadTypeGroups.get(highway).addLayer(layer);
+            
+            // Set style
+            layer.setStyle(getRoadStyle(highway));
+            
+            // Add popup
+            const popupContent = `
+                <div style="font-family: Arial, sans-serif;">
+                    <h4 style="margin: 0 0 8px 0; color: #2c3e50;">${props.name || 'Unnamed Road'}</h4>
+                    <p style="margin: 2px 0;"><strong>Type:</strong> ${highway}</p>
+                    <p style="margin: 2px 0;"><strong>OSM ID:</strong> ${props.osm_id}</p>
+                    ${props.surface ? `<p style="margin: 2px 0;"><strong>Surface:</strong> ${props.surface}</p>` : ''}
+                    ${props.lanes ? `<p style="margin: 2px 0;"><strong>Lanes:</strong> ${props.lanes}</p>` : ''}
+                    ${props.maxspeed ? `<p style="margin: 2px 0;"><strong>Max Speed:</strong> ${props.maxspeed}</p>` : ''}
+                </div>
+            `;
+            layer.bindPopup(popupContent);
+        }
+
+        // Function to populate road type controls
+        function populateRoadTypeControls() {
+            const container = document.getElementById('road-types');
+            container.innerHTML = '';
+            
+            // Sort road types by count (descending)
+            const sortedTypes = Array.from(roadTypes.entries())
+                .sort((a, b) => b[1] - a[1]);
+            
+            sortedTypes.forEach(([highway, count]) => {
+                const item = document.createElement('div');
+                item.className = 'road-type-item';
+                item.style.borderLeftColor = roadColors[highway] || '#34495e';
+                
+                item.innerHTML = `
+                    <div class="road-type-info">
+                        <div class="road-type-name">${highway}</div>
+                        <div class="road-count">${count} roads</div>
+                    </div>
+                    <div class="toggle-switch small-toggle active" onclick="toggleRoadTypeUI('${highway}')"></div>
+                `;
+                
+                container.appendChild(item);
+                visibleRoadTypes.add(highway);
+            });
+            
+            document.getElementById('road-types-count').textContent = roadTypes.size;
+        }
+
+        // Function to handle road type toggle UI
+        function toggleRoadTypeUI(highway) {
+            const toggles = document.querySelectorAll('.road-type-item');
+            toggles.forEach(item => {
+                const name = item.querySelector('.road-type-name').textContent;
+                if (name === highway) {
+                    const toggle = item.querySelector('.toggle-switch');
+                    toggle.classList.toggle('active');
+                }
+            });
+            toggleRoadType(highway);
+        }
+
+        // Function to update visible count
+        function updateVisibleCount() {
+            let visibleCount = 0;
+            if (roadsVisible) {
+                visibleRoadTypes.forEach(highway => {
+                    visibleCount += roadTypes.get(highway) || 0;
+                });
+            }
+            document.getElementById('visible-roads').textContent = visibleCount;
+        }
+
+        // Load and display the main roads data
+        console.log(`🚀 LOADING main roads data from main_balanga_roads.geojson...`);
+        fetch('./main_balanga_roads.geojson')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('✅ Main roads data loaded successfully');
+                console.log(`📊 Data type: ${data.type}`);
+                console.log(`📊 Features count: ${data.features.length}`);
+                
+                roadsData = data;
+                
+                // Update total count
+                document.getElementById('total-roads').textContent = data.features.length;
+                
+                // Create main layer group for roads
+                roadsLayerGroup = L.layerGroup();
+                
+                // Add roads to groups
+                L.geoJSON(data, {
+                    onEachFeature: onEachRoad
+                });
+                
+                // Add all road type groups to main layer
+                roadTypeGroups.forEach(group => {
+                    roadsLayerGroup.addLayer(group);
+                });
+                
+                // Add to map
+                roadsLayerGroup.addTo(map);
+                
+                // Fit map to roads
+                const tempLayer = L.geoJSON(data);
+                map.fitBounds(tempLayer.getBounds(), {
+                    padding: [20, 20]
+                });
+                
+                // Populate controls
+                populateRoadTypeControls();
+                updateVisibleCount();
+                
+                console.log(`🎉 INITIALIZATION completed: ${data.features.length} main roads loaded`);
+                console.log(`🗺️ Road types found:`, Array.from(roadTypes.keys()));
+                
+                document.getElementById('status-bar').textContent = 
+                    `Loaded ${data.features.length} main roads. Switch themes and toggle layers above.`;
+            })
+            .catch(error => {
+                console.error('❌ Error loading main roads data:', error);
+                document.getElementById('total-roads').textContent = 'Error loading data';
+                document.getElementById('status-bar').textContent = `Error: ${error.message}`;
+            });
+
+        // Add scale control
+        L.control.scale({
+            position: 'bottomleft',
+            metric: true,
+            imperial: false
+        }).addTo(map);
+    </script>
+</body>
+</html>
