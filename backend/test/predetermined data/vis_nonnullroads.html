@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Roads Map — With Null Names</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+  <style>
+    html,body,#map { height: 100%; margin: 0; padding: 0; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
+
+  <script>
+    // Initialize map
+    const map = L.map('map').setView([14.683, 120.541], 15);
+
+    // Base map
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Fetch GeoJSON with null names included
+    fetch("output.geojson")
+      .then(response => response.json())
+      .then(data => {
+        const roadsLayer = L.geoJSON(data, {
+          style: (feature) => {
+            return {
+              color: feature.properties && feature.properties.name ? "#1f78b4" : "#888888",
+              weight: 4,
+              opacity: 0.9
+            };
+          },
+          onEachFeature: (feature, layer) => {
+            const name = feature.properties && feature.properties.name ? feature.properties.name : "Unnamed";
+            layer.bindPopup(`<strong>${name}</strong>`);
+          }
+        }).addTo(map);
+
+        // Auto zoom to bounds
+        map.fitBounds(roadsLayer.getBounds());
+      })
+      .catch(err => console.error("Error loading GeoJSON:", err));
+  </script>
+</body>
+</html>

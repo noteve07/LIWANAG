@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Illumination Seed Preview</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #map { height: 100vh; width: 100%; background: #0f172a; }
+    .control-panel {
+      position: absolute; top: 12px; left: 12px; z-index: 1000;
+      background: rgba(17,24,39,0.9); color: #e5e7eb; padding: 10px 12px; border: 1px solid #374151;
+      border-radius: 8px; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; font-size: 12px;
+    }
+    .control-panel button { cursor: pointer; padding: 6px 10px; background: #1f2937; color: #e5e7eb;
+      border: 1px solid #374151; border-radius: 6px; }
+    .legend { position: absolute; bottom: 12px; right: 12px; z-index: 1000; background: rgba(17,24,39,0.9);
+      color: #e5e7eb; padding: 10px 12px; border: 1px solid #374151; border-radius: 8px; font-size: 12px; }
+    .legend-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+    .legend-color { width: 18px; height: 6px; border-radius: 4px; }
+    .leaflet-tooltip.seed-tooltip {
+      background: rgba(17,24,39,0.95); border: 1px solid #374151; color: #e5e7eb;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.45); border-radius: 8px; padding: 8px 10px;
+    }
+    .stat { display: inline-block; margin-right: 10px; opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="control-panel">
+    <div style="margin-bottom:6px; font-weight:600">Illumination Seed Preview</div>
+    <div class="stat">Points: <span id="pt-count">0</span></div>
+    <div class="stat">Primary: <span id="count-primary">0</span></div>
+    <div class="stat">Secondary: <span id="count-secondary">0</span></div>
+    <div class="stat">Residential: <span id="count-residential">0</span></div>
+    <div style="margin-top:8px;">
+      <div style="margin-bottom:6px;">
+        <label><input type="checkbox" id="show-points" checked> Show Points</label>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label><input type="checkbox" id="show-segments" checked> Show Line Segments</label>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="btn-export">Export JSON</button>
+        <button id="btn-regenerate">Regenerate</button>
+      </div>
+    </div>
+  </div>
+  <div class="legend">
+    <div style="font-weight:600; margin-bottom:6px;">Legend (Lux)</div>
+    <div class="legend-row"><div class="legend-color" style="background:#22c55e"></div><span>High (≥ 500)</span></div>
+    <div class="legend-row"><div class="legend-color" style="background:#eab308"></div><span>Mid (200–499)</span></div>
+    <div class="legend-row"><div class="legend-color" style="background:#ef4444"></div><span>Low (&lt; 200)</span></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <!-- Leaflet Hotline Plugin for gradient polylines -->
+  <script src="https://unpkg.com/leaflet.hotline@0.4.0/dist/leaflet.hotline.js"></script>
+  <!-- Geohash library (Chris Veness) -->
+  <script src="https://unpkg.com/latlon-geohash@2.0.0/geohash.js"></script>
+  <script>
+    // Map init
+    const map = L.map('map', {
+      center: [14.6760, 120.5360],
+      zoom: 14,
+      minZoom: 12,
+      maxZoom: 18,
+      zoomControl: true,
+      preferCanvas: true
+    });
+
+    const base = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Styling helpers
+    function luxColor(lux) {
+      if (lux >= 500) return '#22c55e'; // green
+      if (lux >= 200) return '#eab308'; // yellow
+      return '#ef4444'; // red
+    }
+
+    // Sample points evenly spaced along a LineString (every ~6 meters - HALF the data!)
+    function samplePointsFromLine(coords) {
+      if (!coords || coords.length < 2) return [];
+      const points = [];
+      const targetSpacingMeters = 6; // 6 meters apart - DOUBLE the gap = HALF the points!
+      
+      for (let i = 0; i < coords.length - 1; i++) {
+        const [lon1, lat1] = coords[i];
+        const [lon2, lat2] = coords[i + 1];
+        
+        // Calculate distance between consecutive points using Haversine
+        const segmentDistance = haversineDistance(lat1, lon1, lat2, lon2);
+        
+        // How many points to place in this segment
+        const numPoints = Math.max(1, Math.floor(segmentDistance / targetSpacingMeters));
+        
+        for (let j = 0; j < numPoints; j++) {
+          const t = j / numPoints; // interpolation factor
+          const lat = lat1 + (lat2 - lat1) * t;
+          const lon = lon1 + (lon2 - lon1) * t;
+          points.push([lat, lon]);
+        }
+      }
+      
+      // Add the final point
+      if (coords.length > 0) {
+        const [lon, lat] = coords[coords.length - 1];
+        points.push([lat, lon]);
+      }
+      
+      return points;
+    }
+
+    // Haversine distance formula (returns meters)
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371000; // Earth radius in meters
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    // Select roads with good spatial distribution instead of random
+    function selectSpatiallyDistributedRoads(roads, maxCount) {
+      if (roads.length <= maxCount) return roads;
+      
+      const selected = [];
+      const used = new Set();
+      
+      // Start with some primary/secondary roads
+      const primary = roads.filter(r => r.properties?.highway === 'primary');
+      const secondary = roads.filter(r => r.properties?.highway === 'secondary');
+      const others = roads.filter(r => !['primary', 'secondary'].includes(r.properties?.highway));
+      
+      // Add all primary roads first (they're important)
+      for (const road of primary.slice(0, Math.min(8, primary.length))) {
+        selected.push(road);
+      }
+      
+      // Add some secondary roads
+      for (const road of secondary.slice(0, Math.min(15, secondary.length))) {
+        selected.push(road);
+      }
+      
+      // Fill remaining with others, trying to spread them out
+      const remaining = maxCount - selected.length;
+      if (remaining > 0 && others.length > 0) {
+        // Grid-based selection for better distribution
+        const gridSize = Math.ceil(Math.sqrt(others.length / remaining));
+        for (let i = 0; i < others.length && selected.length < maxCount; i += gridSize) {
+          selected.push(others[i]);
+        }
+      }
+      
+      return selected;
+    }
+
+    // Lux by highway type
+    function randomLuxForHighway(highway) {
+      switch (highway) {
+        case 'primary': return Math.floor(400 + Math.random() * 400);   // 400–800
+        case 'secondary': return Math.floor(250 + Math.random() * 300); // 250–550
+        default: return Math.floor(80 + Math.random() * 220);           // 80–300 (residential/others)
+      }
+    }
+
+    // Build simple seed with 5 consecutive points from actual GeoJSON
+    async function generateSeed() {
+      const url = './main_balanga_roads.geojson';
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      const features = data.features || [];
+      
+      // Find a good road with coordinates
+      const road = features.find(f => 
+        f.geometry && 
+        f.geometry.type === 'LineString' && 
+        f.geometry.coordinates && 
+        f.geometry.coordinates.length >= 5 &&
+        f.properties && 
+        f.properties.name
+      );
+      
+      if (!road) {
+        console.error('No suitable road found');
+        return { points: [], counts: {} };
+      }
+      
+      const coords = road.geometry.coordinates;
+      const streetName = road.properties.name || 'Unnamed Road';
+      const highway = road.properties.highway || 'primary';
+      
+      // Take first 5 coordinates from this road
+      const selected = [];
+      for (let i = 0; i < Math.min(5, coords.length); i++) {
+        const [lon, lat] = coords[i];
+        const lux = [100, 300, 600, 400, 800][i]; // Different lux values
+        const geo_hash = (typeof Geohash !== 'undefined') ? Geohash.encode(lat, lon, 8) : '';
+        
+        selected.push({
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString(),
+          lat,
+          lon,
+          lux,
+          street: streetName,
+          barangay: null,
+          geo_hash,
+          highway,
+          roadIndex: i
+        });
+      }
+
+      return { points: selected, counts: { [highway]: 5 } };
+    }
+
+    let pointsLayer = L.layerGroup().addTo(map);
+    let segmentsLayer = L.layerGroup().addTo(map);
+    let lastSeed = null;
+    let roadData = null; // store original road data
+
+    function renderSeed(seed) {
+      pointsLayer.clearLayers();
+      segmentsLayer.clearLayers();
+      
+      const showPoints = document.getElementById('show-points').checked;
+      const showSegments = document.getElementById('show-segments').checked;
+      
+      // Render line segments with smooth gradient using Leaflet.hotline
+      if (showSegments && seed.points.length > 1) {
+        // Sort points by roadIndex to maintain proper sequence
+        const sortedPoints = [...seed.points].sort((a, b) => a.roadIndex - b.roadIndex);
+        
+        // Check if hotline plugin is available
+        if (typeof L.hotline !== 'undefined') {
+          console.log('🔥 Using Leaflet.hotline for smooth gradient');
+          
+          // Prepare data for hotline: [lat, lon, lux] format
+          const hotlineData = sortedPoints.map(p => [p.lat, p.lon, p.lux]);
+          
+          // Find min/max lux values for gradient scaling
+          const luxValues = sortedPoints.map(p => p.lux);
+          const minLux = Math.min(...luxValues);
+          const maxLux = Math.max(...luxValues);
+          
+          // Create smooth gradient hotline
+          const hotline = L.hotline(hotlineData, {
+            min: minLux,
+            max: maxLux,
+            palette: {
+              0.0: '#ef4444',  // Red for low lux
+              0.5: '#eab308',  // Yellow for mid lux  
+              1.0: '#22c55e'   // Green for high lux
+            },
+            weight: 6,
+            outlineColor: 'rgba(0,0,0,0.3)',
+            outlineWidth: 1,
+            opacity: 0.9
+          });
+          
+          // Add tooltip to the hotline
+          hotline.bindTooltip(`
+            <div style="min-width: 180px;">
+              <div style="font-weight:600; margin-bottom:4px;">${sortedPoints[0].street}</div>
+              <div>Lux Range: <b>${minLux} - ${maxLux}</b></div>
+              <div>Points: <b>${sortedPoints.length}</b></div>
+              <div style="font-size:10px; color:#666;">Smooth gradient transition</div>
+            </div>`, { className: 'seed-tooltip' });
+          
+          hotline.addTo(segmentsLayer);
+        } else {
+          console.log('⚠️ Hotline plugin not available, using fallback');
+          
+          // Fallback: Create individual segments with better smoothing
+          for (let i = 0; i < sortedPoints.length - 1; i++) {
+            const p1 = sortedPoints[i];
+            const p2 = sortedPoints[i + 1];
+            
+            // Average lux for THIS SPECIFIC SEGMENT
+            const avgLux = (p1.lux + p2.lux) / 2;
+            const segmentColor = luxColor(avgLux);
+            
+            const segment = L.polyline([[p1.lat, p1.lon], [p2.lat, p2.lon]], {
+              color: segmentColor,
+              weight: 6,
+              opacity: 0.9,
+              lineCap: 'round',
+              lineJoin: 'round'
+            });
+            
+            segment.bindTooltip(`
+              <div style="min-width: 160px;">
+                <div style="font-weight:600; margin-bottom:4px;">${p1.street}</div>
+                <div>Segment Lux: <b>${Math.round(avgLux)}</b></div>
+                <div>Point 1: ${p1.lux} lux</div>
+                <div>Point 2: ${p2.lux} lux</div>
+              </div>`, { className: 'seed-tooltip' });
+            
+            segment.addTo(segmentsLayer);
+          }
+        }
+      }
+
+      // Render points
+      if (showPoints) {
+        const markers = [];
+        for (const p of seed.points) {
+          const color = luxColor(p.lux);
+          const marker = L.circleMarker([p.lat, p.lon], {
+            radius: 2,           // very small fixed radius
+            color: '#000',       // black border
+            weight: 0.5,         // thin border
+            fillColor: color,
+            fillOpacity: 0.9,
+            interactive: true
+          });
+
+          const tooltipHtml = `
+            <div style="min-width: 180px;">
+              <div style="font-weight:600; margin-bottom:6px;">${p.street}</div>
+              <div>Lux: <b>${p.lux}</b></div>
+              <div>Lat: ${p.lat.toFixed(6)}</div>
+              <div>Lon: ${p.lon.toFixed(6)}</div>
+              <div>GeoHash(8): <code>${p.geo_hash}</code></div>
+              <div style="opacity:.75; margin-top:4px;">${p.highway}</div>
+            </div>`;
+
+          marker.bindTooltip(tooltipHtml, { direction: 'top', opacity: 0.95, className: 'seed-tooltip' });
+          marker.addTo(pointsLayer);
+          markers.push(marker);
+        }
+
+        if (markers.length) {
+          const group = L.featureGroup(markers);
+          try { map.fitBounds(group.getBounds(), { padding: [20, 20] }); } catch {}
+        }
+      }
+
+      // Stats
+      document.getElementById('pt-count').textContent = seed.points.length;
+      document.getElementById('count-primary').textContent = seed.points.filter(p => p.highway === 'primary').length;
+      document.getElementById('count-secondary').textContent = seed.points.filter(p => p.highway === 'secondary').length;
+      document.getElementById('count-residential').textContent = seed.points.filter(p => p.highway !== 'primary' && p.highway !== 'secondary').length;
+    }
+
+    async function bootstrap() {
+      lastSeed = await generateSeed();
+      renderSeed(lastSeed);
+    }
+
+    document.getElementById('btn-export').addEventListener('click', () => {
+      if (!lastSeed) return;
+      const payload = lastSeed.points.map(p => ({
+        // Matches illumination_data schema (id is server-generated later)
+        created_at: p.created_at,
+        lat: p.lat,
+        lon: p.lon,
+        lux: p.lux,
+        street: p.street,
+        barangay: p.barangay,
+        geo_hash: p.geo_hash
+      }));
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'illumination_seed.json'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('btn-regenerate').addEventListener('click', async () => {
+      lastSeed = await generateSeed();
+      renderSeed(lastSeed);
+    });
+
+    // Toggle event listeners
+    document.getElementById('show-points').addEventListener('change', () => {
+      if (lastSeed) renderSeed(lastSeed);
+    });
+
+    document.getElementById('show-segments').addEventListener('change', () => {
+      if (lastSeed) renderSeed(lastSeed);
+    });
+
+    bootstrap();
+  </script>
+</body>
+</html>
+
+
