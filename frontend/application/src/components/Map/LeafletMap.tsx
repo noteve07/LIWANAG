@@ -14,12 +14,19 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
+import type { ReactNode } from "react";
+
 interface LeafletMapProps {
   height?: string;
   width?: string;
+  children?: ReactNode;
 }
 
-function LeafletMap({ height = "500px", width = "100%" }: LeafletMapProps) {
+function LeafletMap({
+  height = "500px",
+  width = "100%",
+  children,
+}: LeafletMapProps) {
   const [currentTheme, setCurrentTheme] = useState("dark");
   const balangaCenter: [number, number] = [14.676, 120.536];
 
@@ -193,6 +200,9 @@ function LeafletMap({ height = "500px", width = "100%" }: LeafletMapProps) {
           <Marker position={balangaCenter}>
             <Popup>Balanga City, Bataan</Popup>
           </Marker>
+
+          {/* Render children overlays here */}
+          {children}
         </MapContainer>
 
         {/* Dark theme lightening overlay */}

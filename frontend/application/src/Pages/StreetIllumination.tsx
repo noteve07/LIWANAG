@@ -1,8 +1,10 @@
-import LeafletMap from '../components/Map/LeafletMap';
+import MapVisualization from "../components/Map/MapVisualization";
 
 function StreetIllumination() {
   return (
-    <LeafletMap height="100vh" width="100%" />
+    <div className="h-[calc(100vh-4rem)]">
+      <MapVisualization height="100%" width="100%" />
+    </div>
   );
 }
 
