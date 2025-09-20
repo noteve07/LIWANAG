@@ -290,6 +290,85 @@
         .load-file-btn:hover {
             background: #229954;
         }
+        
+        .auto-replace-btn {
+            background: #f39c12;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .auto-replace-btn:hover {
+            background: #e67e22;
+        }
+        
+        .street-segment-btn {
+            background: #9b59b6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .street-segment-btn:hover {
+            background: #8e44ad;
+        }
+        
+        .street-segment-btn.active {
+            background: #e74c3c;
+        }
+        
+        .mark-unsurveyed-btn {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .mark-unsurveyed-btn:hover {
+            background: #7f8c8d;
+        }
+        
+        .select-segments-btn {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .select-segments-btn:hover {
+            background: #d35400;
+        }
+        
+        .export-unsurveyed-btn {
+            background: #16a085;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .export-unsurveyed-btn:hover {
+            background: #138d75;
+        }
     </style>
 </head>
 <body>
@@ -358,13 +437,30 @@
             <div class="checkbox-group">
                 <button id="load-file" class="load-file-btn">📁 Load File</button>
             </div>
+            <div class="checkbox-group">
+                <button id="auto-replace" class="auto-replace-btn">🔄 Auto Replace</button>
+            </div>
+            <div class="checkbox-group">
+                <button id="street-segment-mode" class="street-segment-btn">🛣️ Street Segment Mode</button>
+            </div>
+            <div class="checkbox-group">
+                <button id="mark-unsurveyed" class="mark-unsurveyed-btn" style="display: none;">❌ Mark as Unsurveyed</button>
+            </div>
+            <div class="checkbox-group">
+                <button id="select-segments" class="select-segments-btn">🎯 Select Segments</button>
+            </div>
+            <div class="checkbox-group">
+                <button id="export-unsurveyed" class="export-unsurveyed-btn">📤 Export Unsurveyed</button>
+            </div>
         </div>
         
         <div class="stats">
             <p><strong>Total Points:</strong> <span id="count-total">0</span></p>
             <p><strong>Visible Points:</strong> <span id="count-visible">0</span></p>
             <p><strong>Selected Points:</strong> <span id="selected-count">0</span></p>
-            <p><strong>Selection Mode:</strong> <span id="selection-mode">Hold Shift + Drag to select multiple points</span></p>
+            <p><strong>Selected Segments:</strong> <span id="selected-segments-count">0</span></p>
+            <p><strong>Unsurveyed Segments:</strong> <span id="unsurveyed-count">0</span></p>
+            <p><strong>Mode:</strong> <span id="current-mode">Hold Shift + Drag to select multiple points</span></p>
         </div>
         
         <div class="legend">
@@ -424,6 +520,9 @@
         let isSelectionMode = false;
         let selectedPoints = [];
         let selectionRectangle = null;
+        let isStreetSegmentMode = false;
+        let selectedStreetSegments = [];
+        let unsurveyedSegments = [];
         
         // Performance optimization - only show these barangays
         const ALLOWED_BARANGAYS = [
@@ -478,18 +577,18 @@
             
             // Handle Shift key for selection mode
             document.addEventListener('keydown', function(e) {
-                if (e.shiftKey) {
+                if (e.shiftKey && !isStreetSegmentMode) {
                     isSelectionMode = true;
-                    document.getElementById('selection-mode').textContent = 'Selection Mode Active - Drag to select points';
-                    document.getElementById('selection-mode').style.color = '#f39c12';
+                    document.getElementById('current-mode').textContent = 'Selection Mode Active - Drag to select points';
+                    document.getElementById('current-mode').style.color = '#f39c12';
                 }
             });
             
             document.addEventListener('keyup', function(e) {
-                if (!e.shiftKey) {
+                if (!e.shiftKey && !isStreetSegmentMode) {
                     isSelectionMode = false;
-                    document.getElementById('selection-mode').textContent = 'Hold Shift + Drag to select multiple points';
-                    document.getElementById('selection-mode').style.color = '#666';
+                    document.getElementById('current-mode').textContent = 'Hold Shift + Drag to select multiple points';
+                    document.getElementById('current-mode').style.color = '#666';
                 }
             });
         }
@@ -564,6 +663,63 @@
                 console.error('Error loading street segments data:', error);
                 return [];
             }
+        }
+
+        // Create street segment layers
+        function createStreetSegmentLayers() {
+            console.log('Creating street segment layers...');
+            console.log('Street segments data:', streetSegmentsData.length);
+            console.log('Barangays data:', barangaysData.length);
+            
+            const filteredSegments = streetSegmentsData.filter(segment => {
+                const barangay = barangaysData.find(b => b.id === segment.barangay_id);
+                return barangay && ALLOWED_BARANGAYS.includes(barangay.name);
+            });
+
+            console.log('Filtered segments:', filteredSegments.length);
+
+            filteredSegments.forEach(segment => {
+                if (segment.segment_geom && segment.segment_geom.coordinates) {
+                    const coordinates = segment.segment_geom.coordinates.map(coord => [coord[1], coord[0]]);
+                    
+                    const polyline = L.polyline(coordinates, {
+                        color: '#3498db',
+                        weight: 3,
+                        opacity: 0.7,
+                        clickable: true
+                    });
+
+                    // Add click event for street segment selection
+                    polyline.on('click', function(e) {
+                        console.log('Street segment clicked!', segment.id, 'Mode:', isStreetSegmentMode);
+                        if (isStreetSegmentMode) {
+                            selectStreetSegment(segment, polyline);
+                        }
+                    });
+
+                    // Add popup
+                    const barangay = barangaysData.find(b => b.id === segment.barangay_id);
+                    const street = streetsData.find(s => s.id === segment.original_street_id);
+                    
+                    polyline.bindPopup(`
+                        <div style="font-family: Arial, sans-serif;">
+                            <strong>Street Segment</strong><br>
+                            <strong>ID:</strong> ${segment.id}<br>
+                            <strong>Street:</strong> ${street ? street.name : 'Unknown'}<br>
+                            <strong>Barangay:</strong> ${barangay ? barangay.name : 'Unknown'}<br>
+                            <strong>Length:</strong> ${segment.meters ? segment.meters.toFixed(2) : 'N/A'} meters<br>
+                            <strong>Status:</strong> ${unsurveyedSegments.includes(segment.id) ? 'Unsurveyed' : 'Surveyed'}<br>
+                            <strong>Click to select when in segment mode</strong>
+                        </div>
+                    `);
+
+                    polyline.streetSegmentData = segment;
+                    allLayers.push(polyline);
+                    map.addLayer(polyline);
+                }
+            });
+            
+            console.log('Street segments created:', allLayers.filter(l => l.streetSegmentData).length);
         }
 
         // Get color based on lux value
@@ -755,6 +911,8 @@
             document.getElementById('count-total').textContent = illuminationData.length;
             document.getElementById('count-visible').textContent = filteredData.length;
             document.getElementById('selected-count').textContent = selectedPoints.length;
+            document.getElementById('selected-segments-count').textContent = selectedStreetSegments.length;
+            document.getElementById('unsurveyed-count').textContent = unsurveyedSegments.length;
             
             if (selectedLayer) {
                 const data = selectedLayer.illuminationData;
@@ -995,7 +1153,7 @@
             editedData = [];
             deletedData = [];
             
-            alert(`✅ Changes saved! File downloaded as illumination_data.json\n\n📁 Please replace the old file in your project folder.\n\n📊 Summary:\n• ${editedCount} points edited\n• ${deletedCount} points deleted\n• Total points: ${illuminationData.length}`);
+            alert(`✅ Changes saved! File downloaded as illumination_data.json\n\n📁 Next steps:\n1. Run auto_replace.bat (double-click it)\n2. Or run: python auto_replace_file.py\n3. Refresh this page to see changes\n\n📊 Summary:\n• ${editedCount} points edited\n• ${deletedCount} points deleted\n• Total points: ${illuminationData.length}`);
         }
 
         // Select points within bounds
@@ -1119,6 +1277,122 @@
             selectedPoints = [];
             document.getElementById('clear-selection').style.display = 'none';
             document.getElementById('selected-count').textContent = '0';
+        }
+
+        // Select street segment
+        function selectStreetSegment(segment, polyline) {
+            console.log('selectStreetSegment called:', segment.id, 'Current selected:', selectedStreetSegments);
+            
+            if (selectedStreetSegments.includes(segment.id)) {
+                // Deselect
+                selectedStreetSegments = selectedStreetSegments.filter(id => id !== segment.id);
+                polyline.setStyle({
+                    color: '#3498db',
+                    weight: 3,
+                    opacity: 0.7
+                });
+                console.log('Deselected segment:', segment.id);
+            } else {
+                // Select
+                selectedStreetSegments.push(segment.id);
+                polyline.setStyle({
+                    color: '#f39c12',
+                    weight: 5,
+                    opacity: 1
+                });
+                console.log('Selected segment:', segment.id);
+            }
+            
+            console.log('Updated selected segments:', selectedStreetSegments);
+            updateStats();
+            
+            if (selectedStreetSegments.length > 0) {
+                console.log('Showing mark-unsurveyed button');
+                document.getElementById('mark-unsurveyed').style.display = 'block';
+            } else {
+                console.log('Hiding mark-unsurveyed button');
+                document.getElementById('mark-unsurveyed').style.display = 'none';
+            }
+        }
+
+        // Mark selected segments as unsurveyed
+        function markAsUnsurveyed() {
+            if (selectedStreetSegments.length === 0) {
+                alert('No street segments selected!');
+                return;
+            }
+
+            if (!confirm(`Mark ${selectedStreetSegments.length} street segment(s) as unsurveyed?\n\nThis will set all illumination points on these segments to lux = -1.`)) {
+                return;
+            }
+
+            let pointsUpdated = 0;
+
+            selectedStreetSegments.forEach(segmentId => {
+                // Find the street segment to get its original_street_id
+                const segment = streetSegmentsData.find(s => s.id === segmentId);
+                if (!segment) return;
+
+                // Add to unsurveyed segments list
+                if (!unsurveyedSegments.includes(segmentId)) {
+                    unsurveyedSegments.push(segmentId);
+                }
+
+                console.log(`Processing segment ${segmentId}, original_street_id: ${segment.original_street_id}`);
+
+                // Find all illumination points on this segment and set lux to -1
+                illuminationData.forEach(point => {
+                    if (point.street_id === segment.original_street_id) {
+                        console.log(`Updating point: ${point.id}, lux: ${point.lux} -> -1`);
+                        point.lux = -1;
+                        pointsUpdated++;
+                        
+                        // Track the edit
+                        const existingEdit = editedData.find(edit => 
+                            Math.abs(edit.lat - point.lat) < 0.000001 &&
+                            Math.abs(edit.lon - point.lon) < 0.000001
+                        );
+                        
+                        if (existingEdit) {
+                            existingEdit.lux = -1;
+                        } else {
+                            editedData.push({
+                                lat: point.lat,
+                                lon: point.lon,
+                                lux: -1,
+                                street_id: point.street_id,
+                                barangay_id: point.barangay_id
+                            });
+                        }
+                    }
+                });
+
+                // Update the polyline visual to gray
+                const polyline = allLayers.find(layer => 
+                    layer.streetSegmentData && layer.streetSegmentData.id === segmentId
+                );
+                
+                if (polyline) {
+                    polyline.setStyle({
+                        color: '#95a5a6',
+                        weight: 4,
+                        opacity: 0.8
+                    });
+                }
+            });
+
+            // Store count before clearing
+            const segmentsCount = selectedStreetSegments.length;
+            
+            // Clear selection
+            selectedStreetSegments = [];
+            document.getElementById('mark-unsurveyed').style.display = 'none';
+            
+            // Refresh the map to show updated colors
+            refreshData();
+            
+            updateStats();
+            alert(`✅ Marked ${segmentsCount} segment(s) as unsurveyed!\n\n📊 ${pointsUpdated} illumination points set to lux = -1`);
         }
 
         // Delete point function
@@ -1267,6 +1541,118 @@
                     alert('❌ File System Access API not supported in this browser');
                 }
             });
+            
+            // Add event listener for auto-replace button
+            document.getElementById('auto-replace').addEventListener('click', () => {
+                alert('🔄 Auto Replace Instructions:\n\n1. Make sure you have downloaded illumination_data.json\n2. Double-click auto_replace.bat in the project folder\n3. Or run: python auto_replace_file.py\n4. Refresh this page to see changes\n\n💡 The script will automatically find and replace the file!');
+            });
+            
+            // Add event listener for street segment mode button
+            document.getElementById('street-segment-mode').addEventListener('click', () => {
+                isStreetSegmentMode = !isStreetSegmentMode;
+                const button = document.getElementById('street-segment-mode');
+                
+                console.log('Street segment mode toggled:', isStreetSegmentMode);
+                
+                if (isStreetSegmentMode) {
+                    button.classList.add('active');
+                    button.textContent = '🛣️ Exit Segment Mode';
+                    document.getElementById('current-mode').textContent = 'Street Segment Mode - Click segments to select';
+                    document.getElementById('current-mode').style.color = '#9b59b6';
+                    isSelectionMode = false;
+                    console.log('Street segment mode activated');
+                } else {
+                    button.classList.remove('active');
+                    button.textContent = '🛣️ Street Segment Mode';
+                    document.getElementById('current-mode').textContent = 'Hold Shift + Drag to select multiple points';
+                    document.getElementById('current-mode').style.color = '#666';
+                    selectedStreetSegments = [];
+                    document.getElementById('mark-unsurveyed').style.display = 'none';
+                    updateStats();
+                    console.log('Street segment mode deactivated');
+                }
+            });
+            
+            // Add event listener for mark unsurveyed button
+            document.getElementById('mark-unsurveyed').addEventListener('click', markAsUnsurveyed);
+            
+            // Add event listener for select segments button
+            document.getElementById('select-segments').addEventListener('click', () => {
+                if (streetSegmentsData.length > 0) {
+                    // Select first few segments as example
+                    selectedStreetSegments = [streetSegmentsData[0].id, streetSegmentsData[1].id, streetSegmentsData[2].id];
+                    console.log('Selected segments:', selectedStreetSegments);
+                    
+                    // Update visual styling
+                    selectedStreetSegments.forEach(segmentId => {
+                        const polyline = allLayers.find(layer => 
+                            layer.streetSegmentData && layer.streetSegmentData.id === segmentId
+                        );
+                        if (polyline) {
+                            polyline.setStyle({
+                                color: '#f39c12',
+                                weight: 5,
+                                opacity: 1
+                            });
+                        }
+                    });
+                    
+                    // Show the mark unsurveyed button
+                    document.getElementById('mark-unsurveyed').style.display = 'block';
+                    updateStats();
+                    
+                    alert(`Selected ${selectedStreetSegments.length} street segments!\n\nNow you can click "Mark as Unsurveyed" to set their lux values to -1.`);
+                } else {
+                    alert('No street segments data available!');
+                }
+            });
+            
+            // Add event listener for export unsurveyed button
+            document.getElementById('export-unsurveyed').addEventListener('click', () => {
+                if (unsurveyedSegments.length === 0) {
+                    alert('No unsurveyed segments to export!');
+                    return;
+                }
+                
+                // Create export data
+                const exportData = {
+                    unsurveyed_segments: unsurveyedSegments,
+                    segment_details: unsurveyedSegments.map(segmentId => {
+                        const segment = streetSegmentsData.find(s => s.id === segmentId);
+                        const barangay = barangaysData.find(b => b.id === segment.barangay_id);
+                        const street = streetsData.find(s => s.id === segment.original_street_id);
+                        
+                        return {
+                            segment_id: segmentId,
+                            original_street_id: segment.original_street_id,
+                            street_name: street ? street.name : 'Unknown',
+                            barangay_name: barangay ? barangay.name : 'Unknown',
+                            meters: segment.meters,
+                            exported_at: new Date().toISOString()
+                        };
+                    }),
+                    metadata: {
+                        total_unsurveyed_segments: unsurveyedSegments.length,
+                        exported_at: new Date().toISOString(),
+                        exported_by: 'Illumination Editor'
+                    }
+                };
+                
+                // Download the file
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'unsurveyed_segments.json';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                alert(`✅ Exported ${unsurveyedSegments.length} unsurveyed segments!\n\n📁 File: unsurveyed_segments.json`);
+            });
         }
 
         // Main initialization
@@ -1301,6 +1687,7 @@
                     );
                     
                     createIlluminationMarkers(filteredData);
+                    createStreetSegmentLayers();
                     populateFilters(illuminationData);
                     populateStreetsDropdown(); // Populate with all streets from allowed barangays
                     setupEventListeners();

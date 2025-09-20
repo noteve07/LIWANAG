@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanga Streets Visualization</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        #map { height: 100vh; width: 100%; }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            min-width: 300px;
+            max-width: 400px;
+        }
+        select, button { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 5px 0; 
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #3388ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background: #2563eb; }
+        .street-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #3388ff;
+        }
+        .legend { margin-top: 15px; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; margin: 5px 0; }
+        .legend-color { width: 20px; height: 10px; margin-right: 8px; }
+        .loading { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">Loading streets data...</div>
+    <div id="map"></div>
+    
+    <div id="controls" class="hidden">
+        <h3>Street Selection</h3>
+        
+        <select id="street-select">
+            <option value="">Select a Street</option>
+        </select>
+        
+        <select id="barangay-filter">
+            <option value="">All Barangays</option>
+        </select>
+        
+        <button id="show-all-btn">Show All Streets</button>
+        <button id="reset-view-btn">Reset View</button>
+        
+        <div id="street-info" class="street-info hidden">
+            <h4>Street Information</h4>
+            <div id="info-content"></div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #3388ff;"></div>
+                <span>Selected Street</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #cccccc;"></div>
+                <span>Other Streets</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #999999;"></div>
+                <span>Unnamed Streets (not in list)</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Configuration
+        const MAP_CENTER = [14.6833, 120.5333];
+        const MAP_ZOOM = 13;
+
+        // Global variables
+        let map;
+        let allStreetLayers = [];
+        let selectedStreetLayer = null;
+        let streetsData = [];
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView(MAP_CENTER, MAP_ZOOM);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        // Load JSON data
+        async function loadStreetsData() {
+            try {
+                const response = await fetch('streets_raw.json');
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error loading streets data:', error);
+                throw error;
+            }
+        }
+
+        // Populate dropdowns - ONLY NAMED STREETS
+        function populateDropdowns(streets) {
+            const streetSelect = document.getElementById('street-select');
+            const barangayFilter = document.getElementById('barangay-filter');
+            
+            // Clear existing options
+            streetSelect.innerHTML = '<option value="">Select a Street</option>';
+            barangayFilter.innerHTML = '<option value="">All Barangays</option>';
+            
+            // Get unique barangays from NAMED streets only
+            const namedStreets = streets.filter(street => street.name);
+            const barangays = [...new Set(namedStreets.map(street => street.barangays?.name).filter(Boolean))];
+            barangays.sort().forEach(barangay => {
+                const option = document.createElement('option');
+                option.value = barangay;
+                option.textContent = barangay;
+                barangayFilter.appendChild(option);
+            });
+            
+            // Populate street dropdown with NAMED STREETS ONLY
+            namedStreets.forEach(street => {
+                const option = document.createElement('option');
+                option.value = street.id;
+                option.textContent = street.name;
+                option.dataset.barangay = street.barangays?.name || '';
+                streetSelect.appendChild(option);
+            });
+            
+            // Filter streets by barangay
+            barangayFilter.addEventListener('change', filterStreetsByBarangay);
+            
+            // Street selection handler
+            streetSelect.addEventListener('change', (e) => {
+                const streetId = e.target.value ? parseInt(e.target.value) : null;
+                highlightStreet(streetId);
+            });
+            
+            // Button handlers
+            document.getElementById('show-all-btn').addEventListener('click', showAllStreets);
+            document.getElementById('reset-view-btn').addEventListener('click', resetView);
+        }
+
+        // Filter streets by barangay
+        function filterStreetsByBarangay() {
+            const selectedBarangay = document.getElementById('barangay-filter').value;
+            const streetSelect = document.getElementById('street-select');
+            
+            Array.from(streetSelect.options).forEach(option => {
+                if (option.value === '') return;
+                
+                const showStreet = !selectedBarangay || option.dataset.barangay === selectedBarangay;
+                option.style.display = showStreet ? '' : 'none';
+            });
+            
+            streetSelect.value = '';
+            highlightStreet(null);
+        }
+
+        // Convert coordinates to LatLng
+        function convertCoordsToLatLng(coordinates) {
+            return coordinates.map(coord => [coord[1], coord[0]]);
+        }
+
+        // Create street layers - BOTH NAMED AND UNNAMED
+        function createStreetLayers(streets) {
+            streets.forEach(street => {
+                try {
+                    const geom = street.linestring;
+                    if (geom && geom.coordinates) {
+                        const latlngs = convertCoordsToLatLng(geom.coordinates);
+                        
+                        const isUnnamed = !street.name;
+                        const streetColor = isUnnamed ? '#999999' : '#cccccc'; // Gray for unnamed
+                        
+                        const polyline = L.polyline(latlngs, {
+                            color: streetColor,
+                            weight: 4,
+                            opacity: 0.8
+                        }).addTo(map);
+                        
+                        // Add popup with street info
+                        const popupContent = `
+                            <strong>${street.name || 'Unnamed Street'}</strong><br>
+                            ${street.barangays?.name ? `Barangay: ${street.barangays.name}<br>` : ''}
+                            ID: ${street.id}
+                        `;
+                        polyline.bindPopup(popupContent);
+                        
+                        // Store reference
+                        polyline.streetData = street;
+                        allStreetLayers.push(polyline);
+                    }
+                } catch (error) {
+                    console.warn('Error processing street:', street.id, error);
+                }
+            });
+        }
+
+        // Highlight selected street
+        function highlightStreet(streetId) {
+            // Reset all streets to default style
+            allStreetLayers.forEach(layer => {
+                const isUnnamed = !layer.streetData.name;
+                const defaultColor = isUnnamed ? '#999999' : '#cccccc';
+                
+                layer.setStyle({
+                    color: defaultColor,
+                    weight: 4
+                });
+            });
+            
+            // Remove previous highlight
+            if (selectedStreetLayer) {
+                const wasUnnamed = !selectedStreetLayer.streetData.name;
+                const defaultColor = wasUnnamed ? '#999999' : '#cccccc';
+                
+                selectedStreetLayer.setStyle({
+                    color: defaultColor,
+                    weight: 4
+                });
+            }
+            
+            // Highlight selected street
+            if (streetId) {
+                selectedStreetLayer = allStreetLayers.find(layer => layer.streetData.id === streetId);
+                if (selectedStreetLayer) {
+                    selectedStreetLayer.setStyle({
+                        color: '#3388ff',
+                        weight: 6
+                    });
+                    
+                    // Show street info
+                    showStreetInfo(selectedStreetLayer.streetData);
+                    
+                    // Pan to selected street
+                    map.fitBounds(selectedStreetLayer.getBounds().pad(0.1));
+                }
+            } else {
+                // Hide info panel if no street selected
+                document.getElementById('street-info').classList.add('hidden');
+            }
+        }
+
+        // Show street information
+        function showStreetInfo(street) {
+            const infoDiv = document.getElementById('info-content');
+            const infoPanel = document.getElementById('street-info');
+            
+            infoDiv.innerHTML = `
+                <strong>${street.name || 'Unnamed Street'}</strong><br>
+                <br>
+                <strong>ID:</strong> ${street.id}<br>
+                ${street.barangays?.name ? `<strong>Barangay:</strong> ${street.barangays.name}<br>` : ''}
+                ${street.barangay_id ? `<strong>Barangay ID:</strong> ${street.barangay_id}<br>` : ''}
+            `;
+            
+            infoPanel.classList.remove('hidden');
+        }
+
+        // Show all streets
+        function showAllStreets() {
+            document.getElementById('street-select').value = '';
+            document.getElementById('barangay-filter').value = '';
+            highlightStreet(null);
+            
+            // Reset all filters
+            Array.from(document.getElementById('street-select').options).forEach(option => {
+                option.style.display = '';
+            });
+            
+            // Fit map to show all streets
+            const group = L.featureGroup(allStreetLayers);
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+
+        // Reset view
+        function resetView() {
+            showAllStreets();
+            document.getElementById('street-info').classList.add('hidden');
+        }
+
+        // Main initialization
+        async function init() {
+            initMap();
+            
+            try {
+                streetsData = await loadStreetsData();
+                
+                if (streetsData.length > 0) {
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('controls').classList.remove('hidden');
+                    
+                    populateDropdowns(streetsData);
+                    createStreetLayers(streetsData);
+                    
+                    // Fit map to show all streets
+                    const group = L.featureGroup(allStreetLayers);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                } else {
+                    document.getElementById('loading').textContent = 'No streets data found';
+                }
+            } catch (error) {
+                document.getElementById('loading').textContent = 'Error loading data. Check console for details.';
+                console.error('Initialization error:', error);
+            }
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>

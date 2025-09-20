@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LIWANAG - Street Explorer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 90vh; }
+        #controls { 
+            padding: 10px; 
+            background: #f8f9fa; 
+            border-bottom: 2px solid #dee2e6;
+        }
+        .street-label { 
+            font-weight: bold; 
+            background: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+        }
+        select { 
+            padding: 8px; 
+            margin: 0 10px;
+            width: 300px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label for="streetSelect">Select Street:</label>
+        <select id="streetSelect">
+            <option value="">-- All Streets --</option>
+        </select>
+        <button onclick="focusOnSelected()">Focus</button>
+        <button onclick="resetView()">Reset View</button>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map;
+        let streetLayers = {};
+        let allStreets = [];
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([14.683, 120.537], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        // Load and display streets
+        async function loadStreets() {
+            const response = await fetch('streets.json');
+            const data = await response.json();
+            
+            allStreets = data.features;
+            
+            // Populate dropdown
+            const select = document.getElementById('streetSelect');
+            allStreets.forEach(street => {
+                const option = document.createElement('option');
+                option.value = street.properties.name;
+                option.textContent = `${street.properties.name} (${street.properties.length.toFixed(0)}m)`;
+                select.appendChild(option);
+            });
+            
+            // Add all streets to map initially
+            addStreetsToMap(allStreets);
+        }
+
+        // Add streets to map with individual layers
+        function addStreetsToMap(streets) {
+            streets.forEach(street => {
+                const layer = L.geoJSON(street, {
+                    style: { color: 'orange', weight: 4, opacity: 0.8 },
+                    onEachFeature: function(feature, layer) {
+                        const name = feature.properties.name;
+                        const length = feature.properties.length.toFixed(0);
+                        layer.bindPopup(`<b>${name}</b><br>${length} meters`);
+                        
+                        // Store reference to this layer
+                        if (!streetLayers[name]) {
+                            streetLayers[name] = [];
+                        }
+                        streetLayers[name].push(layer);
+                        
+                        // Add to map
+                        layer.addTo(map);
+                    }
+                });
+            });
+        }
+
+        // Focus on selected street
+        function focusOnSelected() {
+            const selectedStreet = document.getElementById('streetSelect').value;
+            
+            // Reset all styles first
+            Object.values(streetLayers).flat().forEach(layer => {
+                layer.setStyle({ color: 'orange', weight: 4, opacity: 0.8 });
+            });
+            
+            if (selectedStreet) {
+                // Highlight selected street
+                if (streetLayers[selectedStreet]) {
+                    streetLayers[selectedStreet].forEach(layer => {
+                        layer.setStyle({ color: 'red', weight: 6, opacity: 1 });
+                    });
+                    
+                    // Zoom to selected street
+                    const group = L.featureGroup(streetLayers[selectedStreet]);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+            }
+        }
+
+        // Reset to full view
+        function resetView() {
+            document.getElementById('streetSelect').value = "";
+            Object.values(streetLayers).flat().forEach(layer => {
+                layer.setStyle({ color: 'orange', weight: 4, opacity: 0.8 });
+            });
+            map.setView([14.683, 120.537], 13);
+        }
+
+        // Initialize everything
+        initMap();
+        loadStreets();
+    </script>
+</body>
+</html>

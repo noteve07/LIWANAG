@@ -38,11 +38,15 @@
         <div class="legend">
             <div class="legend-item">
                 <div class="legend-color" style="background: #3388ff;"></div>
-                <span>Selected Barangay</span>
+                <span>Selected Streets</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff3333;"></div>
+                <span>Barangay Boundary</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: #cccccc;"></div>
-                <span>Other Barangays</span>
+                <span>Other Streets</span>
             </div>
         </div>
     </div>
@@ -50,13 +54,15 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // Configuration
-        const MAP_CENTER = [14.6833, 120.5333]; // Balanga coordinates
+        const MAP_CENTER = [14.6833, 120.5333];
         const MAP_ZOOM = 13;
 
         // Global variables
         let map;
         let streetLayers = {};
+        let barangayBoundaries = {};
         let selectedBarangayId = null;
+        let selectedBarangayLayer = null;
 
         // Initialize map
         function initMap() {
@@ -99,19 +105,44 @@
             select.addEventListener('change', (e) => {
                 selectedBarangayId = e.target.value ? parseInt(e.target.value) : null;
                 updateStreetColors();
+                highlightBarangayBoundary();
             });
         }
 
         // Convert GeoJSON coordinates to Leaflet LatLng array
         function convertCoordsToLatLng(coordinates) {
-            // Handle both LineString and MultiLineString
             if (coordinates[0] && Array.isArray(coordinates[0][0])) {
-                // MultiLineString: [[[lng,lat], [lng,lat]], [[lng,lat], [lng,lat]]]
                 return coordinates.map(line => line.map(coord => [coord[1], coord[0]]));
             } else {
-                // LineString: [[lng,lat], [lng,lat]]
                 return coordinates.map(coord => [coord[1], coord[0]]);
             }
+        }
+
+        // Create barangay boundaries
+        function createBarangayBoundaries(barangays) {
+            barangays.forEach(barangay => {
+                try {
+                    const boundary = barangay.boundary;
+                    if (boundary && boundary.coordinates) {
+                        const latlngs = convertCoordsToLatLng(boundary.coordinates);
+                        
+                        // For Polygon coordinates (first element is outer ring)
+                        const polygonCoords = latlngs[0];
+                        
+                        const polygon = L.polygon(polygonCoords, {
+                            color: 'transparent', // Initially transparent
+                            fillColor: 'transparent',
+                            weight: 0,
+                            fillOpacity: 0
+                        }).addTo(map);
+                        
+                        // Store reference
+                        barangayBoundaries[barangay.id] = polygon;
+                    }
+                } catch (error) {
+                    console.warn('Error processing barangay boundary:', barangay.id, error);
+                }
+            });
         }
 
         // Create street layers
@@ -124,7 +155,6 @@
                         
                         let polyline;
                         if (Array.isArray(latlngs[0]) && Array.isArray(latlngs[0][0])) {
-                            // MultiLineString: create multiple polylines
                             latlngs.forEach(lineCoords => {
                                 polyline = L.polyline(lineCoords, {
                                     color: '#cccccc',
@@ -134,7 +164,6 @@
                                 storePolylineReference(polyline, segment);
                             });
                         } else {
-                            // LineString: create single polyline
                             polyline = L.polyline(latlngs, {
                                 color: '#cccccc',
                                 weight: 4,
@@ -151,18 +180,43 @@
 
         // Store polyline reference by barangay_id
         function storePolylineReference(polyline, segment) {
-            // Add popup with street info
             const popupContent = `
                 <strong>${segment.street_name || 'Unnamed Street'}</strong><br>
-                Barangay ID: ${segment.barangay_id}
+                Barangay: ${segment.barangay_id}
             `;
             polyline.bindPopup(popupContent);
 
-            // Store reference by barangay_id
             if (!streetLayers[segment.barangay_id]) {
                 streetLayers[segment.barangay_id] = [];
             }
             streetLayers[segment.barangay_id].push(polyline);
+        }
+
+        // Highlight barangay boundary
+        function highlightBarangayBoundary() {
+            // Remove previous highlight
+            if (selectedBarangayLayer) {
+                selectedBarangayLayer.setStyle({
+                    color: 'transparent',
+                    weight: 0,
+                    fillOpacity: 0
+                });
+            }
+
+            // Highlight selected barangay boundary
+            if (selectedBarangayId && barangayBoundaries[selectedBarangayId]) {
+                selectedBarangayLayer = barangayBoundaries[selectedBarangayId];
+                selectedBarangayLayer.setStyle({
+                    color: '#ff3333', // Red border
+                    weight: 4,
+                    fillColor: 'rgba(255, 51, 51, 0.2)', // Light red fill
+                    fillOpacity: 0.3,
+                    opacity: 1
+                });
+                
+                // Bring to front
+                selectedBarangayLayer.bringToFront();
+            }
         }
 
         // Update street colors based on selected barangay
@@ -175,13 +229,14 @@
                 });
             });
 
-            // Highlight selected barangay
+            // Highlight selected barangay streets
             if (selectedBarangayId && streetLayers[selectedBarangayId]) {
                 streetLayers[selectedBarangayId].forEach(layer => {
                     layer.setStyle({
                         color: '#3388ff', // Blue for selected
                         weight: 6
                     });
+                    layer.bringToFront();
                 });
             }
         }
@@ -198,10 +253,14 @@
                     document.getElementById('controls').style.display = 'block';
                     
                     populateBarangayDropdown(barangays);
+                    createBarangayBoundaries(barangays);
                     createStreetLayers(streetSegments);
                     
-                    // Fit map to show all streets
-                    const allLayers = Object.values(streetLayers).flat();
+                    // Fit map to show all data
+                    const allLayers = [
+                        ...Object.values(streetLayers).flat(),
+                        ...Object.values(barangayBoundaries)
+                    ];
                     const group = L.featureGroup(allLayers);
                     map.fitBounds(group.getBounds().pad(0.1));
                 } else {
