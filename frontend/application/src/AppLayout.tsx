@@ -18,8 +18,8 @@ function Header() {
 
 function Sidebar() {
   return (
-    <aside className="bg-gray-800 text-white w-64 p-4 h-screen">
-      <nav>
+    <aside className="bg-gray-800 text-white w-64 h-screen overflow-y-auto">
+      <nav className="p-4">
         <div className="mb-6"> 
           <h2 className="text-xl font-bold text-yellow-500">Menu</h2>
         </div>
