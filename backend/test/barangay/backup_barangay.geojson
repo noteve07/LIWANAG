@@ -3,7 +3,9 @@
   "features": [
     {
       "type": "Feature",
-      "properties": {},
+      "properties": {
+        "name": "San Jose"
+      },
       "geometry": {
         "coordinates": [
           [
