@@ -2,7 +2,7 @@ import json
 from supabase import create_client, Client
 from shapely.geometry import LineString
 
-# --- Supabase connection ---
+# --- Supabase connection (temporary, revoke/regenerate later) use os.environ instead for future tests or add to .gitignore ---
 url = "https://uutyoqzsakmpzbkgooxt.supabase.co"
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1dHlvcXpzYWttcHpia2dvb3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NzYwOTgsImV4cCI6MjA3MzM1MjA5OH0.w-vFYJhLleZ4RMrXEU3R6kU9l09qr63v_teQEfmI1nM"  # use service role key for inserting
 supabase: Client = create_client(url, key)
