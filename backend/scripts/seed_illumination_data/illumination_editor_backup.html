@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Illumination Data Editor</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        
+        #map { 
+            height: 100vh; 
+            width: 100%; 
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .control-group h3 {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        
+        .checkbox-group label {
+            font-weight: 500;
+            color: #34495e;
+            cursor: pointer;
+        }
+        
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 14px;
+            margin: 10px 0;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .stats {
+            background: #e8f4fc;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        
+        .stats p {
+            margin: 5px 0;
+            color: #2c3e50;
+        }
+        
+        .legend {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 10px;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .edit-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            width: 300px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .edit-panel.hidden {
+            display: none;
+        }
+        
+        .edit-panel h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .edit-panel input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        
+        .edit-panel button {
+            width: 100%;
+            padding: 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        
+        .edit-panel button:hover {
+            background: #2980b9;
+        }
+        
+        .edit-panel button.danger {
+            background: #e74c3c;
+        }
+        
+        .edit-panel button.danger:hover {
+            background: #c0392b;
+        }
+        
+        .lux-range-btn {
+            width: 100%;
+            padding: 8px 12px;
+            background: #ecf0f1;
+            color: #2c3e50;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 3px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .lux-range-btn:hover {
+            background: #d5dbdb;
+            border-color: #95a5a6;
+        }
+        
+        .lux-range-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+        
+        .save-btn {
+            width: 100%;
+            padding: 12px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 0 5px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .save-btn:hover {
+            background: #229954;
+        }
+        
+        .refresh-btn {
+            width: 100%;
+            padding: 12px;
+            background: #9b59b6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            background: #8e44ad;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <h2>Loading Illumination Data...</h2>
+        <p>Please wait while we load the map data</p>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div id="controls" class="hidden">
+        <h1>Illumination Data Editor</h1>
+        
+        <div class="control-group">
+            <h3>Display Options</h3>
+            <div class="checkbox-group">
+                <input type="checkbox" id="show-all-points" checked>
+                <label for="show-all-points">Show All Data Points</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="show-lux-colors" checked>
+                <label for="show-lux-colors">Show Lux Color Coding</label>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h3>Filter by Barangay</h3>
+            <select id="barangay-filter">
+                <option value="">All Barangays</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <h3>Filter by Street</h3>
+            <select id="street-filter">
+                <option value="">All Streets</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <h3>Quick Edit Lux Ranges</h3>
+            <div class="checkbox-group">
+                <button id="range-0-200" class="lux-range-btn" data-min="0" data-max="200">0-200 lux</button>
+            </div>
+            <div class="checkbox-group">
+                <button id="range-200-400" class="lux-range-btn" data-min="200" data-max="400">200-400 lux</button>
+            </div>
+            <div class="checkbox-group">
+                <button id="range-400-600" class="lux-range-btn" data-min="400" data-max="600">400-600 lux</button>
+            </div>
+            <div class="checkbox-group">
+                <button id="range-600-800" class="lux-range-btn" data-min="600" data-max="800">600-800 lux</button>
+            </div>
+            <div class="checkbox-group">
+                <button id="range-800-1000" class="lux-range-btn" data-min="800" data-max="1000">800-1000 lux</button>
+            </div>
+            <div class="checkbox-group">
+                <button id="save-changes" class="save-btn">Save Changes</button>
+            </div>
+            <div class="checkbox-group">
+                <button id="refresh-data" class="refresh-btn">Refresh Data</button>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <p><strong>Total Points:</strong> <span id="count-total">0</span></p>
+            <p><strong>Visible Points:</strong> <span id="count-visible">0</span></p>
+            <p><strong>Selected Point:</strong> <span id="selected-info">None</span></p>
+        </div>
+        
+        <div class="legend">
+            <h3>Lux Levels</h3>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e74c3c;"></div>
+                <span>Red (0-200 lux)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f39c12;"></div>
+                <span>Orange (200-400 lux)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f1c40f;"></div>
+                <span>Yellow (400-600 lux)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2ecc71;"></div>
+                <span>Yellow-Green (600-800 lux)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #27ae60;"></div>
+                <span>Green (800-1000 lux)</span>
+            </div>
+        </div>
+    </div>
+    
+    <div id="edit-panel" class="edit-panel hidden">
+        <h3>Edit Illumination Point</h3>
+        <p><strong>Coordinates:</strong> <span id="edit-coords"></span></p>
+        <p><strong>Current Lux:</strong> <span id="current-lux"></span></p>
+        <input type="number" id="new-lux" min="0" max="1000" step="0.1" placeholder="Enter new lux value">
+        <button onclick="updateLuxValue()">Update Lux Value</button>
+        <button onclick="closeEditPanel()">Close</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Configuration
+        const MAP_CENTER = [14.6833, 120.5333];
+        const MAP_ZOOM = 13;
+
+        // Global variables
+        let map;
+        let allLayers = [];
+        let selectedLayer = null;
+        let illuminationData = [];
+        let filteredData = [];
+        let barangaysData = [];
+        let streetsData = [];
+        let streetSegmentsData = [];
+        let barangayBoundaries = [];
+        let activeLuxRange = null;
+        let editedData = [];
+        
+        // Performance optimization - only show these barangays
+        const ALLOWED_BARANGAYS = [
+            'Poblacion',
+            'Ibayo', 
+            'Tenejero',
+            'Talisay',
+            'Puerto Rivas Lote',
+            'Dona Francisca',
+            'Malabia',
+            'Cupang West',
+            'San Jose'
+        ];
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView(MAP_CENTER, MAP_ZOOM);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        // Load JSON data
+        async function loadIlluminationData() {
+            try {
+                const response = await fetch('illumination_data.json');
+                const data = await response.json();
+                return data.illumination_data || [];
+            } catch (error) {
+                console.error('Error loading illumination data:', error);
+                return [];
+            }
+        }
+
+        // Load barangays data
+        async function loadBarangaysData() {
+            try {
+                const response = await fetch('barangays.json');
+                const data = await response.json();
+                return data || [];
+            } catch (error) {
+                console.error('Error loading barangays data:', error);
+                return [];
+            }
+        }
+
+        // Load streets data
+        async function loadStreetsData() {
+            try {
+                const response = await fetch('streets.json');
+                const data = await response.json();
+                return data || [];
+            } catch (error) {
+                console.error('Error loading streets data:', error);
+                return [];
+            }
+        }
+
+        // Load street segments data
+        async function loadStreetSegmentsData() {
+            try {
+                const response = await fetch('street_segments.json');
+                const data = await response.json();
+                return data || [];
+            } catch (error) {
+                console.error('Error loading street segments data:', error);
+                return [];
+            }
+        }
+
+        // Get color based on lux value
+        function getLuxColor(lux) {
+            if (lux >= 800) {
+                return '#27ae60'; // Green (800-1000)
+            } else if (lux >= 600) {
+                return '#2ecc71'; // Yellow-green (600-800)
+            } else if (lux >= 400) {
+                return '#f1c40f'; // Yellow (400-600)
+            } else if (lux >= 200) {
+                return '#f39c12'; // Orange (200-400)
+            } else {
+                return '#e74c3c'; // Red (0-200)
+            }
+        }
+
+        // Create illumination point markers
+        function createIlluminationMarkers(data) {
+            // Clear existing layers
+            allLayers.forEach(layer => map.removeLayer(layer));
+            allLayers = [];
+            
+            data.forEach(point => {
+                const luxColor = getLuxColor(point.lux);
+                const marker = L.circleMarker([point.lat, point.lon], {
+                    radius: 4,
+                    fillColor: luxColor,
+                    color: luxColor,
+                    weight: 1,
+                    opacity: 0.8,
+                    fillOpacity: 0.8
+                });
+
+                // Create popup with lux information
+                const popupContent = `
+                    <div style="font-family: Arial, sans-serif;">
+                        <strong>Illumination Point</strong><br>
+                        <strong>Lux:</strong> ${point.lux} lux<br>
+                        <strong>Coordinates:</strong> ${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}<br>
+                        <strong>Street ID:</strong> ${point.street_id}<br>
+                        <strong>Barangay ID:</strong> ${point.barangay_id}<br>
+                        <button onclick="editPoint(${point.lat}, ${point.lon}, ${point.lux})" style="margin-top: 10px; padding: 5px 10px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Edit</button>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                marker.illuminationData = point;
+                
+                // Add click event for direct editing when range is active
+                marker.on('click', function() {
+                    if (activeLuxRange) {
+                        quickEditPoint(point.lat, point.lon, point.lux);
+                    }
+                });
+                
+                allLayers.push(marker);
+                map.addLayer(marker);
+            });
+        }
+
+        // Populate filter dropdowns
+        function populateFilters(data) {
+            const barangaySelect = document.getElementById('barangay-filter');
+            const streetSelect = document.getElementById('street-filter');
+            
+            // Filter barangays to only show allowed ones
+            const allowedBarangayIds = barangaysData
+                .filter(barangay => ALLOWED_BARANGAYS.includes(barangay.name))
+                .map(barangay => barangay.id);
+            
+            // Get unique barangay IDs from illumination data that are in allowed list
+            const barangayIds = [...new Set(data.map(point => point.barangay_id))]
+                .filter(id => allowedBarangayIds.includes(id))
+                .sort((a, b) => a - b);
+            
+            barangaySelect.innerHTML = '<option value="">All Barangays</option>';
+            barangayIds.forEach(id => {
+                const barangay = barangaysData.find(b => b.id === id);
+                if (barangay) {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = barangay.name;
+                    barangaySelect.appendChild(option);
+                }
+            });
+            
+            // Streets will be populated when barangay is selected
+            streetSelect.innerHTML = '<option value="">All Streets</option>';
+        }
+
+        // Populate streets dropdown based on selected barangay
+        function populateStreetsDropdown(selectedBarangayId) {
+            const streetSelect = document.getElementById('street-filter');
+            streetSelect.innerHTML = '<option value="">All Streets</option>';
+            
+            if (!selectedBarangayId) {
+                // Show all streets from allowed barangays
+                const allowedBarangayIds = barangaysData
+                    .filter(barangay => ALLOWED_BARANGAYS.includes(barangay.name))
+                    .map(barangay => barangay.id);
+                
+                const streetIds = [...new Set(
+                    streetSegmentsData
+                        .filter(segment => allowedBarangayIds.includes(segment.barangay_id))
+                        .map(segment => segment.original_street_id)
+                )].sort((a, b) => a - b);
+                
+                streetIds.forEach(id => {
+                    const street = streetsData.find(s => s.id === id);
+                    if (street) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = street.name || `Street ${id}`;
+                        streetSelect.appendChild(option);
+                    }
+                });
+            } else {
+                // Show only streets from selected barangay
+                const streetIds = [...new Set(
+                    streetSegmentsData
+                        .filter(segment => segment.barangay_id === selectedBarangayId)
+                        .map(segment => segment.original_street_id)
+                )].sort((a, b) => a - b);
+                
+                streetIds.forEach(id => {
+                    const street = streetsData.find(s => s.id === id);
+                    if (street) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = street.name || `Street ${id}`;
+                        streetSelect.appendChild(option);
+                    }
+                });
+            }
+        }
+
+        // Filter data based on selections
+        function filterData() {
+            const barangayFilter = document.getElementById('barangay-filter').value;
+            const streetFilter = document.getElementById('street-filter').value;
+            
+            // Filter illumination data to only show allowed barangays
+            const allowedBarangayIds = barangaysData
+                .filter(barangay => ALLOWED_BARANGAYS.includes(barangay.name))
+                .map(barangay => barangay.id);
+            
+            filteredData = illuminationData.filter(point => {
+                const allowedBarangay = allowedBarangayIds.includes(point.barangay_id);
+                const barangayMatch = !barangayFilter || point.barangay_id == barangayFilter;
+                const streetMatch = !streetFilter || point.street_id == streetFilter;
+                return allowedBarangay && barangayMatch && streetMatch;
+            });
+            
+            createIlluminationMarkers(filteredData);
+            updateBarangayBoundaries(barangayFilter);
+            updateStats();
+        }
+
+        // Update barangay boundaries display
+        function updateBarangayBoundaries(selectedBarangayId) {
+            // Remove existing boundaries
+            barangayBoundaries.forEach(boundary => map.removeLayer(boundary));
+            barangayBoundaries = [];
+            
+            if (selectedBarangayId) {
+                const barangay = barangaysData.find(b => b.id == selectedBarangayId);
+                if (barangay && barangay.geometry) {
+                    // Add barangay boundary highlight
+                    const boundary = L.geoJSON(barangay.geometry, {
+                        style: {
+                            color: '#e74c3c',
+                            weight: 3,
+                            opacity: 0.8,
+                            fillColor: '#e74c3c',
+                            fillOpacity: 0.1
+                        }
+                    });
+                    boundary.addTo(map);
+                    barangayBoundaries.push(boundary);
+                }
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('count-total').textContent = illuminationData.length;
+            document.getElementById('count-visible').textContent = filteredData.length;
+            
+            if (selectedLayer) {
+                const data = selectedLayer.illuminationData;
+                document.getElementById('selected-info').textContent = 
+                    `${data.lux} lux (${data.lat.toFixed(4)}, ${data.lon.toFixed(4)})`;
+            } else {
+                document.getElementById('selected-info').textContent = 'None';
+            }
+        }
+
+        // Edit point function
+        function editPoint(lat, lon, currentLux) {
+            selectedLayer = allLayers.find(layer => 
+                Math.abs(layer.illuminationData.lat - lat) < 0.000001 &&
+                Math.abs(layer.illuminationData.lon - lon) < 0.000001
+            );
+            
+            if (selectedLayer) {
+                document.getElementById('edit-coords').textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                document.getElementById('current-lux').textContent = `${currentLux} lux`;
+                document.getElementById('new-lux').value = currentLux;
+                document.getElementById('edit-panel').classList.remove('hidden');
+            }
+        }
+
+        // Update lux value
+        function updateLuxValue() {
+            const newLux = parseFloat(document.getElementById('new-lux').value);
+            
+            if (isNaN(newLux) || newLux < 0 || newLux > 1000) {
+                alert('Please enter a valid lux value between 0 and 1000');
+                return;
+            }
+            
+            if (selectedLayer) {
+                // Update the data
+                selectedLayer.illuminationData.lux = newLux;
+                
+                // Update the marker color
+                const newColor = getLuxColor(newLux);
+                selectedLayer.setStyle({
+                    fillColor: newColor,
+                    color: newColor
+                });
+                
+                // Update the popup
+                const popupContent = `
+                    <div style="font-family: Arial, sans-serif;">
+                        <strong>Illumination Point</strong><br>
+                        <strong>Lux:</strong> ${newLux} lux<br>
+                        <strong>Coordinates:</strong> ${selectedLayer.illuminationData.lat.toFixed(6)}, ${selectedLayer.illuminationData.lon.toFixed(6)}<br>
+                        <strong>Street ID:</strong> ${selectedLayer.illuminationData.street_id}<br>
+                        <strong>Barangay ID:</strong> ${selectedLayer.illuminationData.barangay_id}<br>
+                        <button onclick="editPoint(${selectedLayer.illuminationData.lat}, ${selectedLayer.illuminationData.lon}, ${newLux})" style="margin-top: 10px; padding: 5px 10px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Edit</button>
+                    </div>
+                `;
+                selectedLayer.setPopupContent(popupContent);
+                
+                // Update stats
+                updateStats();
+                
+                // Close edit panel
+                closeEditPanel();
+            }
+        }
+
+        // Close edit panel
+        function closeEditPanel() {
+            document.getElementById('edit-panel').classList.add('hidden');
+            selectedLayer = null;
+            updateStats();
+        }
+
+        // Generate random lux value within range
+        function generateRandomLux(min, max) {
+            return Math.round((Math.random() * (max - min) + min) * 10) / 10;
+        }
+
+        // Set active lux range
+        function setActiveLuxRange(min, max) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.lux-range-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            const clickedBtn = document.querySelector(`[data-min="${min}"][data-max="${max}"]`);
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+                activeLuxRange = { min, max };
+            }
+        }
+
+        // Quick edit point with active range
+        function quickEditPoint(lat, lon, currentLux) {
+            if (!activeLuxRange) {
+                alert('Please select a lux range first!');
+                return;
+            }
+            
+            const newLux = generateRandomLux(activeLuxRange.min, activeLuxRange.max);
+            
+            // Find the layer
+            const layer = allLayers.find(l => 
+                Math.abs(l.illuminationData.lat - lat) < 0.000001 &&
+                Math.abs(l.illuminationData.lon - lon) < 0.000001
+            );
+            
+            if (layer) {
+                // Update the data
+                layer.illuminationData.lux = newLux;
+                
+                // Update the marker color
+                const newColor = getLuxColor(newLux);
+                layer.setStyle({
+                    fillColor: newColor,
+                    color: newColor
+                });
+                
+                // Update the popup
+                const popupContent = `
+                    <div style="font-family: Arial, sans-serif;">
+                        <strong>Illumination Point</strong><br>
+                        <strong>Lux:</strong> ${newLux} lux<br>
+                        <strong>Coordinates:</strong> ${layer.illuminationData.lat.toFixed(6)}, ${layer.illuminationData.lon.toFixed(6)}<br>
+                        <strong>Street ID:</strong> ${layer.illuminationData.street_id}<br>
+                        <strong>Barangay ID:</strong> ${layer.illuminationData.barangay_id}<br>
+                        <button onclick="editPoint(${layer.illuminationData.lat}, ${layer.illuminationData.lon}, ${newLux})" style="margin-top: 10px; padding: 5px 10px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Edit</button>
+                    </div>
+                `;
+                layer.setPopupContent(popupContent);
+                
+                // Track edited data
+                const existingEdit = editedData.find(edit => 
+                    Math.abs(edit.lat - lat) < 0.000001 && 
+                    Math.abs(edit.lon - lon) < 0.000001
+                );
+                
+                if (existingEdit) {
+                    existingEdit.lux = newLux;
+                } else {
+                    editedData.push({
+                        lat: layer.illuminationData.lat,
+                        lon: layer.illuminationData.lon,
+                        lux: newLux,
+                        street_id: layer.illuminationData.street_id,
+                        barangay_id: layer.illuminationData.barangay_id
+                    });
+                }
+                
+                updateStats();
+            }
+        }
+
+        // Save changes to JSON file
+        function saveChanges() {
+            if (editedData.length === 0) {
+                alert('No changes to save!');
+                return;
+            }
+            
+            // Create save data with only visible/edited points
+            const saveData = {
+                edited_points: editedData,
+                metadata: {
+                    total_edited: editedData.length,
+                    saved_at: new Date().toISOString(),
+                    active_filters: {
+                        barangay: document.getElementById('barangay-filter').value,
+                        street: document.getElementById('street-filter').value
+                    }
+                }
+            };
+            
+            // Create and download JSON file
+            const dataStr = JSON.stringify(saveData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'illumination_data_edited.json';
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            alert(`Saved ${editedData.length} edited points to illumination_data_edited.json`);
+        }
+
+        // Refresh data without losing progress
+        function refreshData() {
+            // Clear existing layers
+            allLayers.forEach(layer => map.removeLayer(layer));
+            allLayers = [];
+            barangayBoundaries.forEach(boundary => map.removeLayer(boundary));
+            barangayBoundaries = [];
+            
+            // Recreate markers with current data
+            createIlluminationMarkers(filteredData);
+            updateBarangayBoundaries(document.getElementById('barangay-filter').value);
+            updateStats();
+            
+            alert('Data refreshed! Your edits are preserved.');
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('show-all-points').addEventListener('change', function() {
+                if (this.checked) {
+                    createIlluminationMarkers(filteredData);
+                } else {
+                    allLayers.forEach(layer => map.removeLayer(layer));
+                }
+                updateStats();
+            });
+            
+            document.getElementById('show-lux-colors').addEventListener('change', function() {
+                allLayers.forEach(layer => {
+                    const luxColor = this.checked ? getLuxColor(layer.illuminationData.lux) : '#2ecc71';
+                    layer.setStyle({
+                        fillColor: luxColor,
+                        color: luxColor
+                    });
+                });
+            });
+            
+            document.getElementById('barangay-filter').addEventListener('change', function() {
+                populateStreetsDropdown(this.value);
+                filterData();
+            });
+            document.getElementById('street-filter').addEventListener('change', filterData);
+            
+            // Add event listeners for lux range buttons
+            document.querySelectorAll('.lux-range-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const min = parseInt(this.dataset.min);
+                    const max = parseInt(this.dataset.max);
+                    setActiveLuxRange(min, max);
+                });
+            });
+            
+            // Add event listener for save button
+            document.getElementById('save-changes').addEventListener('click', saveChanges);
+            
+            // Add event listener for refresh button
+            document.getElementById('refresh-data').addEventListener('click', refreshData);
+        }
+
+        // Main initialization
+        async function init() {
+            initMap();
+            
+            try {
+                // Load all required data
+                const [illuminationDataLoaded, barangaysDataLoaded, streetsDataLoaded, streetSegmentsDataLoaded] = await Promise.all([
+                    loadIlluminationData(),
+                    loadBarangaysData(),
+                    loadStreetsData(),
+                    loadStreetSegmentsData()
+                ]);
+                
+                illuminationData = illuminationDataLoaded;
+                barangaysData = barangaysDataLoaded;
+                streetsData = streetsDataLoaded;
+                streetSegmentsData = streetSegmentsDataLoaded;
+                
+                if (illuminationData.length > 0) {
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('controls').classList.remove('hidden');
+                    
+                    // Filter to only show allowed barangays
+                    const allowedBarangayIds = barangaysData
+                        .filter(barangay => ALLOWED_BARANGAYS.includes(barangay.name))
+                        .map(barangay => barangay.id);
+                    
+                    filteredData = illuminationData.filter(point => 
+                        allowedBarangayIds.includes(point.barangay_id)
+                    );
+                    
+                    createIlluminationMarkers(filteredData);
+                    populateFilters(illuminationData);
+                    populateStreetsDropdown(); // Populate with all streets from allowed barangays
+                    setupEventListeners();
+                    updateStats();
+                    
+                    // Fit map to show filtered data
+                    if (filteredData.length > 0) {
+                        const group = L.featureGroup(allLayers);
+                        map.fitBounds(group.getBounds().pad(0.1));
+                    }
+                } else {
+                    document.getElementById('loading').innerHTML = `
+                        <h2>No Data Found</h2>
+                        <p>No illumination data available. Please run generate_illumination_data.py first.</p>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('loading').innerHTML = `
+                    <h2>Error Loading Data</h2>
+                    <p>Check console for details</p>
+                `;
+                console.error('Initialization error:', error);
+            }
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
