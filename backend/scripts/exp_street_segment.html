@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanga Streets by Barangay</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { height: 100vh; width: 100%; }
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            min-width: 250px;
+        }
+        select { width: 100%; padding: 8px; margin-bottom: 10px; }
+        .legend { margin-top: 15px; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; margin: 5px 0; }
+        .legend-color { width: 20px; height: 10px; margin-right: 8px; }
+        .loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                  background: white; padding: 20px; border-radius: 8px; z-index: 1000; }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">Loading data...</div>
+    <div id="map"></div>
+    <div id="controls" style="display: none;">
+        <h3>Select Barangay</h3>
+        <select id="barangay-select">
+            <option value="">All Barangays</option>
+        </select>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #3388ff;"></div>
+                <span>Selected Barangay</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #cccccc;"></div>
+                <span>Other Barangays</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Configuration
+        const MAP_CENTER = [14.6833, 120.5333]; // Balanga coordinates
+        const MAP_ZOOM = 13;
+
+        // Global variables
+        let map;
+        let streetLayers = {};
+        let selectedBarangayId = null;
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView(MAP_CENTER, MAP_ZOOM);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        // Load JSON data
+        async function loadJSONData() {
+            try {
+                const [barangaysResponse, streetsResponse] = await Promise.all([
+                    fetch('barangays.json'),
+                    fetch('street_segments.json')
+                ]);
+                
+                const barangays = await barangaysResponse.json();
+                const streetSegments = await streetsResponse.json();
+                
+                return { barangays, streetSegments };
+            } catch (error) {
+                console.error('Error loading JSON data:', error);
+                throw error;
+            }
+        }
+
+        // Populate barangay dropdown
+        function populateBarangayDropdown(barangays) {
+            const select = document.getElementById('barangay-select');
+            select.innerHTML = '<option value="">All Barangays</option>';
+            
+            barangays.forEach(barangay => {
+                const option = document.createElement('option');
+                option.value = barangay.id;
+                option.textContent = barangay.name;
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', (e) => {
+                selectedBarangayId = e.target.value ? parseInt(e.target.value) : null;
+                updateStreetColors();
+            });
+        }
+
+        // Convert GeoJSON coordinates to Leaflet LatLng array
+        function convertCoordsToLatLng(coordinates) {
+            // Handle both LineString and MultiLineString
+            if (coordinates[0] && Array.isArray(coordinates[0][0])) {
+                // MultiLineString: [[[lng,lat], [lng,lat]], [[lng,lat], [lng,lat]]]
+                return coordinates.map(line => line.map(coord => [coord[1], coord[0]]));
+            } else {
+                // LineString: [[lng,lat], [lng,lat]]
+                return coordinates.map(coord => [coord[1], coord[0]]);
+            }
+        }
+
+        // Create street layers
+        function createStreetLayers(streetSegments) {
+            streetSegments.forEach(segment => {
+                try {
+                    const geom = segment.segment_geom;
+                    if (geom && geom.coordinates) {
+                        const latlngs = convertCoordsToLatLng(geom.coordinates);
+                        
+                        let polyline;
+                        if (Array.isArray(latlngs[0]) && Array.isArray(latlngs[0][0])) {
+                            // MultiLineString: create multiple polylines
+                            latlngs.forEach(lineCoords => {
+                                polyline = L.polyline(lineCoords, {
+                                    color: '#cccccc',
+                                    weight: 4,
+                                    opacity: 0.8
+                                }).addTo(map);
+                                storePolylineReference(polyline, segment);
+                            });
+                        } else {
+                            // LineString: create single polyline
+                            polyline = L.polyline(latlngs, {
+                                color: '#cccccc',
+                                weight: 4,
+                                opacity: 0.8
+                            }).addTo(map);
+                            storePolylineReference(polyline, segment);
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Error processing segment:', segment.id, error);
+                }
+            });
+        }
+
+        // Store polyline reference by barangay_id
+        function storePolylineReference(polyline, segment) {
+            // Add popup with street info
+            const popupContent = `
+                <strong>${segment.street_name || 'Unnamed Street'}</strong><br>
+                Barangay ID: ${segment.barangay_id}
+            `;
+            polyline.bindPopup(popupContent);
+
+            // Store reference by barangay_id
+            if (!streetLayers[segment.barangay_id]) {
+                streetLayers[segment.barangay_id] = [];
+            }
+            streetLayers[segment.barangay_id].push(polyline);
+        }
+
+        // Update street colors based on selected barangay
+        function updateStreetColors() {
+            // Reset all to gray first
+            Object.values(streetLayers).flat().forEach(layer => {
+                layer.setStyle({
+                    color: '#cccccc',
+                    weight: 3
+                });
+            });
+
+            // Highlight selected barangay
+            if (selectedBarangayId && streetLayers[selectedBarangayId]) {
+                streetLayers[selectedBarangayId].forEach(layer => {
+                    layer.setStyle({
+                        color: '#3388ff', // Blue for selected
+                        weight: 6
+                    });
+                });
+            }
+        }
+
+        // Main initialization
+        async function init() {
+            initMap();
+            
+            try {
+                const { barangays, streetSegments } = await loadJSONData();
+                
+                if (barangays.length > 0 && streetSegments.length > 0) {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('controls').style.display = 'block';
+                    
+                    populateBarangayDropdown(barangays);
+                    createStreetLayers(streetSegments);
+                    
+                    // Fit map to show all streets
+                    const allLayers = Object.values(streetLayers).flat();
+                    const group = L.featureGroup(allLayers);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                } else {
+                    document.getElementById('loading').textContent = 'No data found in JSON files';
+                }
+            } catch (error) {
+                document.getElementById('loading').textContent = 'Error loading data. Check console for details.';
+                console.error('Initialization error:', error);
+            }
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
