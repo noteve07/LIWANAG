@@ -10,12 +10,14 @@
  */
 
 import { Route, RouterProvider, createBrowserRouter, createRoutesFromElements } from 'react-router-dom'
-import Dashboard from './Pages/Dashboard';
+import Dashboard from './Pages/Dashboard/Dashboard';
 import DeviceManager from './Pages/DeviceManager';
-import Analytics from './Pages/Analytics';
+import Analytics from './Pages/Analytics/Analytics';
+import BarangayDetails from './Pages/Analytics/BarangayDetails';
 import Luxor from './Pages/Luxor';
 import StreetIllumination from './Pages/StreetIllumination';
 import RootLayout from './RouteLayout/RootLayout';
+import AnalyticsLayout from './RouteLayout/AnalyticsLayout';
 
 function App() {
   const router = createBrowserRouter(
@@ -24,7 +26,10 @@ function App() {
         <Route index element={<Dashboard />} />
         <Route path='dashboard' element={<Dashboard />} />
         <Route path='deviceManager' element={<DeviceManager />} />
-        <Route path='analytics' element={<Analytics />} />
+        <Route path='analytics' element={<AnalyticsLayout />}>
+          <Route index element={<Analytics />} />
+          <Route path=':barangayName' element={<BarangayDetails />} />
+        </Route>
         <Route path='luxor' element={<Luxor />} />
         <Route path='streetIllumination' element={<StreetIllumination />} /> 
         <Route path='*' element={<div className="p-10 text-center text-2xl text-gray-500">404 Not Found</div>} />
