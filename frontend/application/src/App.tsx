@@ -10,7 +10,7 @@
  */
 
 import { Route, RouterProvider, createBrowserRouter, createRoutesFromElements } from 'react-router-dom'
-import Dashboard from './Pages/Dashboard';
+import Dashboard from './Pages/Dashboard/Dashboard';
 import DeviceManager from './Pages/DeviceManager';
 import Analytics from './Pages/Analytics/Analytics';
 import BarangayDetails from './Pages/Analytics/BarangayDetails';
