@@ -7,6 +7,9 @@ This script fetches data from the current 'streets' table and saves it to street
 import os
 import json
 from supabase import create_client, Client
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Supabase configuration from environment variables
 SUPABASE_URL = os.environ.get('SUPABASE_URL')

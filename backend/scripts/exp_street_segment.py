@@ -30,7 +30,7 @@ def fetch_data_and_save():
         with open("barangays.json", "w") as f:
             json.dump(barangays, f, indent=2)
         
-        with open("street_segments.json", "w") as f:
+        with open("street_segments1.json", "w") as f:
             json.dump(street_segments, f, indent=2)
         
         print("Data saved to barangays.json and street_segments.json")
