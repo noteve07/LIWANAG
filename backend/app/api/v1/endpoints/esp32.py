@@ -7,7 +7,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 
 from app.core.database import supabase
-from app.models.sensor_data import SensorData
+from app.models.sensor_data import SensorData, SensorDemo
 from app.models.sensor_device import DeviceOfflinePayload, SensorDevice, DeviceOnlinePayload, DeviceStatus
 
 router = APIRouter()
@@ -50,6 +50,39 @@ async def receive_sensor_data(data: SensorData):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/sensor-demo")
+async def receive_sensor_demo_data(data: SensorDemo):
+    """
+    Receives demo sensor data from ESP32.
+    Stores lux, lat, lon data to sensor_demo table in Supabase.
+    Sensor field is always set to 'Alpha'.
+    """
+    try:
+        print(f"RECEIVED DEMO DATA: {data}")
+
+        # prepare the data for supabase insertion
+        record = data.model_dump()
+
+        # insert into supabase sensor_demo table
+        response = supabase.table("sensor_demo").insert(record).execute()
+
+        # check if insert was successful
+        if response.data:
+            print("DEMO DATA INSERTED TO SUPABASE SUCCESSFULLY")
+            return {
+                "status": "success",
+                "message": "Demo sensor data stored in Supabase",
+                "inserted_data": response.data
+            }
+        else:
+            raise Exception("Insert failed: No data returned from Supabase")
+    
+    except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        print("DEMO DATA ERROR TRACEBACK:\n", error_traceback)
+        
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/device-online")

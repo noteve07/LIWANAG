@@ -11,4 +11,11 @@ class SensorData(BaseModel):
     timestamp: datetime
     barangay: Optional[str] = None
     street: Optional[str] = None
+
+
+class SensorDemo(BaseModel):
+    lat: float
+    lon: float
+    lux: float
+    sensor: str = "Alpha"  # Always Alpha as specified
     

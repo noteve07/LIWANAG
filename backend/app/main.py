@@ -54,6 +54,7 @@ def read_root():
             "device_status": "GET /api/v1/device-status/{id}",
             "devices": "GET /api/v1/devices",
             "sensor_data": "POST /api/v1/receive-sensor-data",
+            "sensor_demo": "POST /api/v1/sensor-demo",
             "health": "GET /health"
         }
     }
