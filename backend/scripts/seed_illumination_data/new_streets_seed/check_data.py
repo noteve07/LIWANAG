@@ -31,3 +31,4 @@ print(f"Allowed barangay IDs: {allowed_ids}")
 
 matching_points = [p for p in illumination if p['barangay_id'] in allowed_ids]
 print(f"Points in allowed barangays: {len(matching_points)}")
+
