@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { LayoutDashboard, Lightbulb, Server, BarChart3, Bot } from 'lucide-react';
 
 function Header() {
   return (
@@ -27,36 +28,41 @@ function Sidebar() {
         <ul className="space-y-2">
           <li>
             <NavLink to="/dashboard" className={({isActive}) => 
-              isActive ? "block p-2 bg-blue-600 rounded-md" : "block p-2 hover:bg-gray-700 rounded-md"
+              isActive ? "flex items-center p-2 bg-blue-600 rounded-md" : "flex items-center p-2 hover:bg-gray-700 rounded-md"
             }>
+              <LayoutDashboard className="mr-3" />
               Dashboard
             </NavLink>
           </li>
           <li>
             <NavLink to="/streetIllumination" className={({isActive}) => 
-              isActive ? "block p-2 bg-blue-600 rounded-md" : "block p-2 hover:bg-gray-700 rounded-md"
+              isActive ? "flex items-center p-2 bg-blue-600 rounded-md" : "flex items-center p-2 hover:bg-gray-700 rounded-md"
             }>
+              <Lightbulb className="mr-3" />
               Street Illumination
             </NavLink>
           </li>
           <li>
             <NavLink to="/deviceManager" className={({isActive}) => 
-              isActive ? "block p-2 bg-blue-600 rounded-md" : "block p-2 hover:bg-gray-700 rounded-md"
+              isActive ? "flex items-center p-2 bg-blue-600 rounded-md" : "flex items-center p-2 hover:bg-gray-700 rounded-md"
             }>
+              <Server className="mr-3" />
               Device Manager
             </NavLink>
           </li>
           <li>
             <NavLink to="/analytics" className={({isActive}) => 
-              isActive ? "block p-2 bg-blue-600 rounded-md" : "block p-2 hover:bg-gray-700 rounded-md"
+              isActive ? "flex items-center p-2 bg-blue-600 rounded-md" : "flex items-center p-2 hover:bg-gray-700 rounded-md"
             }>
+              <BarChart3 className="mr-3" />
               Analytics
             </NavLink>
           </li>
           <li>
             <NavLink to="/luxor" className={({isActive}) => 
-              isActive ? "block p-2 bg-blue-600 rounded-md" : "block p-2 hover:bg-gray-700 rounded-md"
+              isActive ? "flex items-center p-2 bg-blue-600 rounded-md" : "flex items-center p-2 hover:bg-gray-700 rounded-md"
             }>
+              <Bot className="mr-3" />
               Luxor
             </NavLink>
           </li>
