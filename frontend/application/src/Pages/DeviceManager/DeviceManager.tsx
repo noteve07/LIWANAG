@@ -1,168 +1,230 @@
+import React, { useState } from 'react';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription 
+} from '../../components/ui/card';
+import { useSampleDeviceData } from '../../utils/Devicemanagerdata';
+import type { Device } from '../../utils/Devicemanagerdata';
+import PageTransition from '../../components/ui/PageTransition';
 
-import { useState, useEffect } from 'react';
-import { Server, Battery, Clock, WifiOff, Wifi } from 'lucide-react';
+const DeviceManager: React.FC = () => {
+  const deviceData = useSampleDeviceData();
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
-interface Device {
-  device_id: number;
-  name: string;
-  status: string;
-  last_seen: string;
-  minutes_since_last_seen: number;
-  battery_level: number;
-  data_points_collected: number;
-}
+  // Format the timestamp to a readable format
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
 
-interface DeviceData {
-  total_devices: number;
-  online_devices: number;
-  offline_devices: number;
-  devices: Device[];
-}
-
-function DeviceCard({ device }: { device: Device }) {
   // Format the time since last seen
-  const formatTimeSince = (minutes: number) => {
+  const formatTimeSinceLastSeen = (minutes: number) => {
     if (minutes < 60) {
       return `${minutes} minutes ago`;
-    } else if (minutes < 1440) {
-      return `${Math.floor(minutes / 60)} hours ago`;
+    } else if (minutes < 1440) { // Less than a day
+      const hours = Math.floor(minutes / 60);
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
     } else {
-      return `${Math.floor(minutes / 1440)} days ago`;
+      const days = Math.floor(minutes / 1440);
+      return `${days} day${days > 1 ? 's' : ''} ago`;
     }
   };
 
-  // Determine the status color
-  const statusColor = device.status === 'online' ? 'bg-green-500' : 'bg-red-500';
+  // Get the status class for styling based on device status
+  const getStatusClass = (status: string) => {
+    return status.toLowerCase() === 'online' 
+      ? 'bg-green-500' 
+      : 'bg-red-500';
+  };
+
+  // Get the battery level class for styling
+  const getBatteryLevelClass = (level: number) => {
+    if (level <= 20) return 'bg-red-500';
+    if (level <= 50) return 'bg-yellow-500';
+    return 'bg-green-500';
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 hover:shadow-lg transition-shadow">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-xl font-semibold text-gray-800">{device.name}</h3>
-          <p className="text-gray-500">ID: {device.device_id}</p>
-        </div>
-        <div className="flex items-center">
-          <div className={`${statusColor} h-3 w-3 rounded-full mr-2`}></div>
-          <span className={device.status === 'online' ? 'text-green-600' : 'text-red-600'}>
-            {device.status === 'online' ? 'Online' : 'Offline'}
-          </span>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-4 mb-3">
-        <div className="flex items-center">
-          <Clock className="h-4 w-4 text-gray-500 mr-2" />
-          <span className="text-sm text-gray-700">Last seen: {formatTimeSince(device.minutes_since_last_seen)}</span>
-        </div>
-        <div className="flex items-center">
-          <Battery className="h-4 w-4 text-gray-500 mr-2" />
-          <div className="flex items-center">
-            <div className="bg-gray-200 w-16 h-3 rounded-full">
-              <div 
-                className={`h-3 rounded-full ${device.battery_level > 20 ? 'bg-green-500' : 'bg-red-500'}`} 
-                style={{ width: `${device.battery_level}%` }}
-              ></div>
-            </div>
-            <span className="text-sm text-gray-700 ml-2">{device.battery_level}%</span>
-          </div>
-        </div>
-      </div>
-      
-      <div className="border-t pt-3">
-        <div className="flex items-center">
-          <Server className="h-4 w-4 text-gray-500 mr-2" />
-          <span className="text-sm text-gray-700">Data points: {device.data_points_collected}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DeviceManager() {
-  const [deviceData, setDeviceData] = useState<DeviceData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchDevices = async () => {
-      try {
-        const response = await fetch("https://liwanag-backend.onrender.com/api/v1/devices");
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const data = await response.json();
-        setDeviceData(data);
-      } catch (err) {
-        setError("Failed to fetch device data");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDevices();
-  }, []);
-
-  return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Device Manager</h1>
-      
-      {loading ? (
-        <div className="flex justify-center items-center h-40">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : error ? (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      ) : deviceData ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow-md p-4">
-              <div className="flex items-center">
-                <Server className="h-8 w-8 mr-3" />
-                <div>
-                  <p className="text-sm font-medium">Total Devices</p>
-                  <h2 className="text-2xl font-bold">{deviceData.total_devices}</h2>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg shadow-md p-4">
-              <div className="flex items-center">
-                <Wifi className="h-8 w-8 mr-3" />
-                <div>
-                  <p className="text-sm font-medium">Online Devices</p>
-                  <h2 className="text-2xl font-bold">{deviceData.online_devices}</h2>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg shadow-md p-4">
-              <div className="flex items-center">
-                <WifiOff className="h-8 w-8 mr-3" />
-                <div>
-                  <p className="text-sm font-medium">Offline Devices</p>
-                  <h2 className="text-2xl font-bold">{deviceData.offline_devices}</h2>
-                </div>
-              </div>
-            </div>
-          </div>
+    <PageTransition>
+      <div className="container mx-auto p-4">
+        <h1 className="text-2xl font-bold mb-6 text-white">Device Manager</h1>
+        
+        {/* Device Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Devices</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-white">{deviceData.total_devices}</p>
+            </CardContent>
+          </Card>
           
-          <h2 className="text-xl font-semibold mb-4">Device List</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {deviceData.devices.map((device) => (
-              <DeviceCard key={device.device_id} device={device} />
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-          No device data available
+          <Card>
+            <CardHeader>
+              <CardTitle>Online Devices</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-green-500">{deviceData.online_devices}</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Offline Devices</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-red-500">{deviceData.offline_devices}</p>
+            </CardContent>
+          </Card>
         </div>
-      )}
-    </div>
+        
+        {/* Devices Table */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Device List</CardTitle>
+            <CardDescription>
+              Manage and monitor your connected devices
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left text-gray-300">
+                <thead className="text-xs uppercase bg-gray-700 text-gray-300">
+                  <tr>
+                    <th className="px-6 py-3">ID</th>
+                    <th className="px-6 py-3">Name</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3">Last Seen</th>
+                    <th className="px-6 py-3">Battery</th>
+                    <th className="px-6 py-3">Data Points</th>
+                    <th className="px-6 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deviceData.devices.map((device) => (
+                    <tr 
+                      key={device.device_id} 
+                      className="border-b bg-gray-800 border-gray-700 hover:bg-gray-700 cursor-pointer"
+                      onClick={() => setSelectedDevice(device)}
+                    >
+                      <td className="px-6 py-4">{device.device_id}</td>
+                      <td className="px-6 py-4 font-medium">{device.name}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(device.status)} text-white`}>
+                          {device.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4" title={formatTimestamp(device.last_seen)}>
+                        {formatTimeSinceLastSeen(device.minutes_since_last_seen)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="w-full bg-gray-600 rounded-full h-2.5 mr-2">
+                            <div 
+                              className={`h-2.5 rounded-full ${getBatteryLevelClass(device.battery_level)}`} 
+                              style={{ width: `${device.battery_level}%` }}
+                            ></div>
+                          </div>
+                          <span>{device.battery_level}%</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">{device.data_points_collected.toLocaleString()}</td>
+                      <td className="px-6 py-4">
+                        <button 
+                          className="font-medium text-blue-500 hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDevice(device);
+                          }}
+                        >
+                          Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Selected Device Details */}
+        {selectedDevice && (
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Device Details: {selectedDevice.name}</CardTitle>
+                <button 
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => setSelectedDevice(null)}
+                >
+                  ✕
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-gray-400 mb-1">Device ID</h4>
+                  <p className="text-white mb-3">{selectedDevice.device_id}</p>
+                  
+                  <h4 className="text-gray-400 mb-1">Status</h4>
+                  <p className="mb-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(selectedDevice.status)} text-white`}>
+                      {selectedDevice.status}
+                    </span>
+                  </p>
+                  
+                  <h4 className="text-gray-400 mb-1">Battery Level</h4>
+                  <div className="flex items-center mb-3">
+                    <div className="w-full bg-gray-600 rounded-full h-2.5 mr-2 max-w-[200px]">
+                      <div 
+                        className={`h-2.5 rounded-full ${getBatteryLevelClass(selectedDevice.battery_level)}`} 
+                        style={{ width: `${selectedDevice.battery_level}%` }}
+                      ></div>
+                    </div>
+                    <span>{selectedDevice.battery_level}%</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-gray-400 mb-1">Last Seen</h4>
+                  <p className="text-white mb-3">{formatTimestamp(selectedDevice.last_seen)}</p>
+                  
+                  <h4 className="text-gray-400 mb-1">Time Since Last Update</h4>
+                  <p className="text-white mb-3">{formatTimeSinceLastSeen(selectedDevice.minutes_since_last_seen)}</p>
+                  
+                  <h4 className="text-gray-400 mb-1">Data Points Collected</h4>
+                  <p className="text-white mb-3">{selectedDevice.data_points_collected.toLocaleString()}</p>
+                </div>
+              </div>
+              
+              <div className="mt-4 flex justify-end space-x-2">
+                <button 
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  onClick={() => console.log('Refresh device data')}
+                >
+                  Refresh Data
+                </button>
+                {selectedDevice.status.toLowerCase() === 'offline' && (
+                  <button 
+                    className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+                    onClick={() => console.log('Attempt reconnection')}
+                  >
+                    Attempt Reconnection
+                  </button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </PageTransition>
   );
-}
+};
 
 export default DeviceManager;
