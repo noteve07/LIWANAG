@@ -1,9 +1,7 @@
 import type { SensorData } from '../../types/sensor';
 import { LucideAlertCircle, LucideChevronRight, LucideCheck } from 'lucide-react';
-import TransitionWrapper from './ui/TransitionWrapper';
-
-// Threshold for determining if an area is well-lit (in lux)
-const WELL_LIT_THRESHOLD = 300;
+import TransitionWrapper from '../../components/ui/TransitionWrapper';
+import { WELL_LIT_THRESHOLD } from '../../constants/metrics';
 
 // Utility function for merging class names
 const cn = (...classes: (string | boolean | undefined)[]) => {
@@ -136,7 +134,7 @@ export default function BarangayAnalyticsCard({
           <div className="text-blue-400 flex items-center text-xs font-medium">
             {isDetailView ? (
               <>
-              <LucideChevronRight className="h-3 w-3 ml-1 rotate-180" />
+                <LucideChevronRight className="h-3 w-3 mr-1 rotate-180" />
                 Go Back
               </>
             ) : (
