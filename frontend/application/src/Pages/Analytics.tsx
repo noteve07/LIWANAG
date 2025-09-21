@@ -163,6 +163,8 @@ function Analytics() {
                   <BarangayAnalyticsCard
                     name={selectedBarangay}
                     data={barangayGroups[selectedBarangay]}
+                    isDetailView={true}
+                    onClick={() => setSelectedBarangay(null)}
                   />
                 </div>
                 
