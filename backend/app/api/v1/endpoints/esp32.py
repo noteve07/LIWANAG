@@ -9,8 +9,15 @@ from fastapi import APIRouter, HTTPException
 from app.core.database import supabase
 from app.models.sensor_data import SensorData, SensorDemo
 from app.models.sensor_device import DeviceOfflinePayload, SensorDevice, DeviceOnlinePayload, DeviceStatus
+from pydantic import BaseModel
 
 router = APIRouter()
+
+
+# Mission control models
+class MissionControlPayload(BaseModel):
+    device_id: int
+    on_mission: bool
 
 
 
@@ -208,3 +215,221 @@ async def device_offline(payload: DeviceOfflinePayload):
         error_traceback = traceback.format_exc()
         print("DEVICE OFFLINE ERROR:\n", error_traceback)
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.get("/start-mission")
+async def start_mission(device_id: int = 1001):
+    """
+    Check if mission should be started for specific device (Backend → ESP32).
+    Returns true/false based on on_mission column in database.
+    """
+    try:
+        # Get device mission status from database
+        device = supabase.table("sensor_devices").select("on_mission, device_id, name").eq("device_id", device_id).execute()
+        
+        if not device.data:
+            # Device not found, return false
+            print(f"⚠️ Device {device_id} not found for mission check")
+            return {
+                "status": False,
+                "message": f"Device {device_id} not found",
+                "mission_active": False
+            }
+        
+        mission_active = device.data[0].get("on_mission", False)
+        device_name = device.data[0].get("name", f"Device-{device_id}")
+        
+        print(f"📋 Mission check for {device_name} (ID: {device_id}): {'ACTIVE' if mission_active else 'INACTIVE'}")
+        
+        return {
+            "status": mission_active,
+            "message": f"Mission status for device {device_id}",
+            "mission_active": mission_active,
+            "device_id": device_id,
+            "device_name": device_name
+        }
+        
+    except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        print("START MISSION ERROR:\n", error_traceback)
+        raise HTTPException(status_code=500, detail=f"Error checking mission status: {str(e)}")
+
+
+@router.get("/stop-mission")
+async def stop_mission(device_id: int = 1001):
+    """
+    Check if mission should be stopped for specific device (Backend → ESP32).
+    Returns true/false - true means STOP the mission, false means CONTINUE.
+    """
+    try:
+        # Get device mission status from database
+        device = supabase.table("sensor_devices").select("on_mission, device_id, name").eq("device_id", device_id).execute()
+        
+        if not device.data:
+            # Device not found, tell it to stop
+            print(f"⚠️ Device {device_id} not found for stop-mission check")
+            return {
+                "status": True,  # Tell ESP32 to stop since device not found
+                "message": f"Device {device_id} not found - stopping mission",
+                "should_stop": True
+            }
+        
+        mission_active = device.data[0].get("on_mission", False)
+        device_name = device.data[0].get("name", f"Device-{device_id}")
+        
+        # If mission is NOT active, ESP32 should stop
+        should_stop = not mission_active
+        
+        print(f"🛑 Stop-mission check for {device_name} (ID: {device_id}): {'STOP' if should_stop else 'CONTINUE'}")
+        
+        return {
+            "status": should_stop,
+            "message": f"Stop mission status for device {device_id}",
+            "should_stop": should_stop,
+            "device_id": device_id,
+            "device_name": device_name,
+            "mission_active": mission_active
+        }
+        
+    except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        print("STOP MISSION ERROR:\n", error_traceback)
+        raise HTTPException(status_code=500, detail=f"Error checking stop mission status: {str(e)}")
+
+
+@router.post("/set-mission")
+async def set_mission_status(payload: MissionControlPayload):
+    """
+    Set mission status for a specific device (Frontend → Backend).
+    Updates the on_mission column in sensor_devices table.
+    """
+    try:
+        # Check if device exists
+        device = supabase.table("sensor_devices").select("*").eq("device_id", payload.device_id).execute()
+        
+        if not device.data:
+            raise HTTPException(status_code=404, detail=f"Device {payload.device_id} not found")
+        
+        # Update the on_mission status
+        update_data = {
+            "on_mission": payload.on_mission,
+            "last_seen": datetime.now().isoformat()
+        }
+        
+        response = supabase.table("sensor_devices").update(update_data).eq("device_id", payload.device_id).execute()
+        
+        action = "started" if payload.on_mission else "stopped"
+        print(f"🎯 Mission {action} for device {payload.device_id}")
+        
+        return {
+            "status": "success",
+            "message": f"Mission {action} for device {payload.device_id}",
+            "device_id": payload.device_id,
+            "on_mission": payload.on_mission,
+            "updated_at": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        print("SET MISSION ERROR:\n", error_traceback)
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.post("/device-restart")
+async def device_restart(payload: DeviceOnlinePayload):
+    """
+    Called by ESP32 when it restarts/boots up.
+    This automatically sets on_mission = false for the device to prevent
+    automatic mission restart after power loss or unexpected reboot.
+    Also updates device status and timestamps.
+    """
+    if not payload or not payload.device_id:
+        raise HTTPException(status_code=400, detail="Device ID is required")
+    
+    try:
+        # Check if device exists
+        existing_device = supabase.table("sensor_devices").select("*").eq("device_id", payload.device_id).execute()
+        
+        current_time = datetime.now()
+        
+        if existing_device.data:
+            # Device exists - reset mission status and update info
+            update_data = {
+                "status": DeviceStatus.ONLINE,
+                "last_seen": current_time.isoformat(),
+                "on_mission": False  # Always reset mission on restart
+            }
+            
+            # Update battery level if provided
+            if payload.battery_level is not None:
+                update_data["battery_level"] = payload.battery_level
+            
+            response = supabase.table("sensor_devices").update(update_data).eq("device_id", payload.device_id).execute()
+            
+            print(f"🔄 Device {payload.device_id} restarted - mission reset to false")
+            return {
+                "status": "success", 
+                "message": f"Device {payload.device_id} restart processed - mission reset",
+                "action": "restart_processed",
+                "device_id": payload.device_id,
+                "on_mission": False,
+                "restart_time": current_time.isoformat()
+            }
+        else:
+            # Device doesn't exist - create new device with mission = false
+            new_device = SensorDevice(
+                device_id=payload.device_id,
+                name=payload.name,
+                status=DeviceStatus.ONLINE,
+                last_seen=current_time,
+                installed_at=current_time,
+                battery_level=payload.battery_level,
+                data_points_collected=0
+            )
+            
+            # Convert to dict for Supabase insertion
+            device_dict = new_device.model_dump()
+            device_dict["last_seen"] = device_dict["last_seen"].isoformat()
+            device_dict["installed_at"] = device_dict["installed_at"].isoformat()
+            device_dict["on_mission"] = False  # Ensure new devices start with mission = false
+            
+            response = supabase.table("sensor_devices").insert(device_dict).execute()
+            
+            print(f"🆕 New device {payload.device_id} registered on restart")
+            return {
+                "status": "success", 
+                "message": f"New device {payload.device_id} registered with mission = false",
+                "action": "device_created",
+                "device_id": payload.device_id,
+                "on_mission": False,
+                "install_time": current_time.isoformat()
+            }
+            
+    except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        print("DEVICE RESTART ERROR:\n", error_traceback)
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.post("/start-mission-device")
+async def start_mission_device(device_id: int):
+    """
+    Start mission for a specific device (Frontend shortcut).
+    """
+    payload = MissionControlPayload(device_id=device_id, on_mission=True)
+    return await set_mission_status(payload)
+
+
+@router.post("/stop-mission-device")
+async def stop_mission_device(device_id: int):
+    """
+    Stop mission for a specific device (Frontend shortcut).
+    """
+    payload = MissionControlPayload(device_id=device_id, on_mission=False)
+    return await set_mission_status(payload)
