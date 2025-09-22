@@ -4,8 +4,8 @@ import random
 import time
 from datetime import datetime
 
-# FastAPI endpoint for sensor-demo
-API_URL = "http://localhost:8000/api/v1/sensor-demo"
+# FastAPI endpoint for sensor-demo (deployed on Render)
+API_URL = "https://liwanag-backend.onrender.com/api/v1/sensor-demo"
 
 # Balanga City coordinates (approximate area)
 BALANGA_LAT_RANGE = (14.6700, 14.6900)  # Latitude range for Balanga

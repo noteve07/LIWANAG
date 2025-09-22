@@ -3,7 +3,7 @@
 import requests
 import random
 
-API_URL = "http://localhost:8000/api/v1/sensor-demo"
+API_URL = "https://liwanag-backend.onrender.com/api/v1/sensor-demo"
 
 # Generate 10 random samples
 print("🚀 Quick Sensor Demo Test")
