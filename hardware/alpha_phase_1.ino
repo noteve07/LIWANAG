@@ -179,6 +179,7 @@ bool sendDeviceRestart() {
   return false;
 }
 
+
 bool checkMissionStatus(const char* url) {
   // check if wifi is connected
   if (WiFi.status() != WL_CONNECTED) {
