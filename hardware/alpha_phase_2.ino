@@ -1,20 +1,21 @@
-// sensor_phase_1.ino
+// sensor_phase_2.ino
+// GPS Sensor Integration (lat lon) using tinyGPSPlus library
 // Features:
-// - Light sensor integration
-// - WiFi connection
-// - HTTP client
-// - JSON payload
-// - Device heartbeat
-// - Device restart
-// - Mission control
+// - Real GPS coordinates from GPS module
+// - GPS status monitoring
+// - Fallback to default coordinates when GPS unavailable
 
 #include <Wire.h>
 #include <BH1750.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
+#include <TinyGPS++.h>
+#include <HardwareSerial.h>
 
 BH1750 lightMeter;
+TinyGPSPlus gps;
+HardwareSerial ss(2); // Use Serial2 for GPS module
 
 const char* ssid = "PLDTHOMEFIBReU2Fh";
 const char* password = "PLDTWIFI95WZm";
@@ -38,10 +39,20 @@ const unsigned long heartbeatInterval = 30000; // 30 seconds
 unsigned long lastMissionCheck = 0;
 const unsigned long missionCheckInterval = 2000; // 2 seconds
 
+unsigned long lastGPSStatus = 0;
+const unsigned long gpsStatusInterval = 60000; // 60 seconds - print GPS status
+
 // device info
 const int deviceId = 1001; 
 const char* deviceName = "Alpha";
 
+// GPS configuration
+const unsigned long gpsTimeout = 5000; // 5 seconds timeout for GPS reading
+float defaultLat = 0.000000;  // Default coordinates (Manila area)
+float defaultLon = 0.000000;
+float currentLat = defaultLat;
+float currentLon = defaultLon;
+bool gpsAvailable = false;
 
 #define LED_BUILTIN 2
 
@@ -192,6 +203,58 @@ bool sendDeviceRestart() {
 }
 
 
+bool readGPS() {
+  // Read GPS data for specified timeout period
+  unsigned long start = millis();
+  bool newData = false;
+  
+  while (millis() - start < gpsTimeout) {
+    while (ss.available() > 0) {
+      if (gps.encode(ss.read())) {
+        newData = true;
+      }
+    }
+    
+    if (newData && gps.location.isValid()) {
+      currentLat = gps.location.lat();
+      currentLon = gps.location.lng();
+      gpsAvailable = true;
+      
+      Serial.println("📍 GPS Updated: " + String(currentLat, 6) + ", " + String(currentLon, 6));
+      Serial.println("🛰️ Satellites: " + String(gps.satellites.value()) + ", HDOP: " + String(gps.hdop.hdop()));
+      return true;
+    }
+    
+    delay(10); // Small delay to prevent busy waiting
+  }
+  
+  // GPS read timeout or invalid data
+  if (newData) {
+    Serial.println("⚠️ GPS data received but invalid location");
+  } else {
+    Serial.println("⚠️ No GPS data received");
+  }
+  
+  gpsAvailable = false;
+  return false;
+}
+
+void printGPSStatus() {
+  Serial.println("=== GPS Status ===");
+  Serial.println("Available: " + String(gpsAvailable ? "YES" : "NO"));
+  Serial.println("Current Lat: " + String(currentLat, 6));
+  Serial.println("Current Lon: " + String(currentLon, 6));
+  
+  if (gps.location.isValid()) {
+    Serial.println("Satellites: " + String(gps.satellites.value()));
+    Serial.println("HDOP: " + String(gps.hdop.hdop()));
+    Serial.println("Age: " + String(gps.location.age()) + "ms");
+  } else {
+    Serial.println("GPS Location: INVALID");
+  }
+  Serial.println("=================");
+}
+
 bool checkMissionStatus(const char* url) {
   // check if wifi is connected
   if (WiFi.status() != WL_CONNECTED) {
@@ -227,6 +290,23 @@ void setup() {
   Wire.begin();
   lightMeter.begin();
   Serial.println(F("BH1750 Test begin"));
+  
+  // Initialize GPS
+  ss.begin(9600, SERIAL_8N1, 16, 17); // RX=16, TX=17 for ESP32
+  Serial.println("📍 GPS Module initializing...");
+  delay(1000);
+  
+  // Try to get initial GPS reading
+  Serial.println("📍 Attempting initial GPS reading...");
+  if (readGPS()) {
+    Serial.println("✅ GPS initialized successfully");
+    printGPSStatus();
+  } else {
+    Serial.println("⚠️ GPS not available, using default coordinates");
+    currentLat = defaultLat;
+    currentLon = defaultLon;
+    gpsAvailable = false;
+  }
 
   // this is good, esp32 should be at least connected to wifi at the start
   connectWiFi();
@@ -307,17 +387,28 @@ void loop() {
     }
   }
 
+  // GPS status check every 60 seconds
+  if (currentTime - lastGPSStatus >= gpsStatusInterval) {
+    lastGPSStatus = currentTime;
+    printGPSStatus();
+  }
+
   // Main data collection loop
   if (startMission) {
     float lux = lightMeter.readLightLevel();
-    float lat = 14.680123;
-    float lon = 120.540456;
+    // Try to get fresh GPS reading
+    readGPS();
+    
+    // Use current GPS coordinates (either fresh or cached)
+    float lat = currentLat;
+    float lon = currentLon;
 
     String jsonPayload = "{\"lat\": " + String(lat,6) +
                         ", \"lon\": " + String(lon,6) +
                         ", \"lux\": " + String(lux,2) + "}";
 
-    Serial.println("📊 Collecting data - Lux: " + String(lux,2));
+    String gpsStatus = gpsAvailable ? "📍 GPS" : "📏 Default";
+    Serial.println("📊 Collecting data - Lux: " + String(lux,2) + " | " + gpsStatus + ": " + String(lat,6) + ", " + String(lon,6));
     
     if (WiFi.status() == WL_CONNECTED && !bulkMode) {
       // Normal mode - send data immediately
@@ -332,7 +423,7 @@ void loop() {
       // TODO: Store jsonPayload to SD card with timestamp
     }
     
-    delay(2000);  // 2 second interval between readings
+    delay(500);  // 0.5 second interval between readings
   } else {
     // Not in mission mode, just idle
     delay(100);
