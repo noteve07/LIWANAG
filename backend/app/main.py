@@ -55,6 +55,11 @@ def read_root():
             "devices": "GET /api/v1/devices",
             "sensor_data": "POST /api/v1/receive-sensor-data",
             "sensor_demo": "POST /api/v1/sensor-demo",
+            "start_mission": "GET /api/v1/start-mission?device_id=1001",
+            "stop_mission": "GET /api/v1/stop-mission?device_id=1001",
+            "set_mission": "POST /api/v1/set-mission",
+            "start_mission_device": "POST /api/v1/start-mission-device",
+            "stop_mission_device": "POST /api/v1/stop-mission-device",
             "health": "GET /health"
         }
     }
