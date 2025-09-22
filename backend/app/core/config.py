@@ -22,7 +22,7 @@ class Settings:
     
     # Device Scheduler Configuration
     SCHEDULER_CHECK_INTERVAL_MINUTES: float = 0.5  
-    SCHEDULER_TIMEOUT_MINUTES: int = 5 
+    SCHEDULER_TIMEOUT_MINUTES: int = 1 
 
 
 # Global settings instance
