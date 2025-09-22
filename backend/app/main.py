@@ -56,6 +56,7 @@ def read_root():
             "devices": "GET /api/v1/devices",
             "sensor_data": "POST /api/v1/receive-sensor-data",
             "sensor_demo": "POST /api/v1/sensor-demo",
+            "bulk_data": "POST /api/v1/bulk-data",
             "start_mission": "GET /api/v1/start-mission?device_id=1001",
             "stop_mission": "GET /api/v1/stop-mission?device_id=1001",
             "set_mission": "POST /api/v1/set-mission",

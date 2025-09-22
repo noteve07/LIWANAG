@@ -19,6 +19,17 @@ class MissionControlPayload(BaseModel):
     device_id: int
     on_mission: bool
 
+# Bulk data models
+class BulkDataItem(BaseModel):
+    lat: float
+    lon: float
+    lux: float
+    sensor: str = "Alpha"
+
+class BulkDataPayload(BaseModel):
+    device_id: int
+    data: list[BulkDataItem]
+
 
 
 @router.post("/sensor-data")
@@ -69,6 +80,7 @@ async def receive_sensor_demo_data(data: SensorDemo):
 
         # prepare the data for supabase insertion
         record = data.model_dump()
+        record["timestamp"] = datetime.now().isoformat()
 
         # insert into supabase sensor_demo table
         response = supabase.table("sensor_demo").insert(record).execute()
@@ -415,6 +427,52 @@ async def device_restart(payload: DeviceOnlinePayload):
         error_traceback = traceback.format_exc()
         print("DEVICE RESTART ERROR:\n", error_traceback)
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.post("/bulk-data")
+async def receive_bulk_data(payload: BulkDataPayload):
+    """
+    Receives bulk sensor data from ESP32 (typically after offline collection).
+    Processes multiple data points and stores them in Supabase with timestamps.
+    """
+    try:
+        print(f"RECEIVED BULK DATA: {len(payload.data)} records from device {payload.device_id}")
+        
+        if not payload.data:
+            raise HTTPException(status_code=400, detail="No data provided")
+        
+        # Prepare bulk data for insertion
+        records = []
+        current_time = datetime.now()
+        
+        for i, data_item in enumerate(payload.data):
+            record = data_item.model_dump()
+            # Add timestamp with slight offset to maintain order
+            record["timestamp"] = (current_time + timedelta(seconds=i)).isoformat()
+            records.append(record)
+        
+        # Bulk insert into supabase sensor_demo table
+        response = supabase.table("sensor_demo").insert(records).execute()
+        
+        # Check if insert was successful
+        if response.data:
+            print(f"BULK DATA INSERTED TO SUPABASE SUCCESSFULLY: {len(response.data)} records")
+            return {
+                "status": "success",
+                "message": f"Bulk data stored in Supabase: {len(response.data)} records",
+                "device_id": payload.device_id,
+                "records_processed": len(response.data),
+                "inserted_data": response.data
+            }
+        else:
+            raise Exception("Bulk insert failed: No data returned from Supabase")
+    
+    except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        print("BULK DATA ERROR TRACEBACK:\n", error_traceback)
+        
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/start-mission-device")
