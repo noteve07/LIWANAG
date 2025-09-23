@@ -2,7 +2,7 @@ import MapVisualization from "../components/Map/MapVisualization";
 
 function StreetIllumination() {
   return (
-    <div className="h-[calc(100vh-4rem)]">
+    <div className="h-full w-full overflow-hidden">
       <MapVisualization height="100%" width="100%" />
     </div>
   );

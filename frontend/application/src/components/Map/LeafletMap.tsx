@@ -27,10 +27,16 @@ function LeafletMap({
   width = "100%",
   children,
 }: LeafletMapProps) {
-  const [currentTheme, setCurrentTheme] = useState("dark");
+  const [currentTheme, setCurrentTheme] = useState("default");
   const balangaCenter: [number, number] = [14.676, 120.536];
 
   const themes = {
+    default: {
+      name: "Default",
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: "&copy; OpenStreetMap contributors",
+      previewUrl: "/src/assets/maps/preview_default.png",
+    },
     dark: {
       name: "Dark",
       url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -54,7 +60,7 @@ function LeafletMap({
     <>
       <style>{`
          .night-satellite-base {
-           filter: hue-rotate(200deg) saturate(0.2) brightness(0.45) contrast(1.3) grayscale(0.3);
+           filter: hue-rotate(200deg) saturate(0.2) brightness(0.55) contrast(1.3) grayscale(0.3);
            opacity: 0.75;
          }
          
@@ -73,9 +79,71 @@ function LeafletMap({
            pointer-events: none;
            z-index: 400;
          }
+         
+         /* Blue overlay for dark theme - adjusted brightness/contrast/saturation */
+         .dark-theme-blue-overlay {
+           position: absolute;
+           top: 0;
+           left: 0;
+           right: 0;
+           bottom: 0;
+           background: rgba(100, 150, 255, 0.2);
+           mix-blend-mode: multiply;
+           pointer-events: none;
+           z-index: 401;
+           filter: brightness(1.1) contrast(1.2) saturate(1.4);
+         }
+         
+         /* Blue overlay for default theme */
+         .default-theme-blue-overlay {
+           position: absolute;
+           top: 0;
+           left: 0;
+           right: 0;
+           bottom: 0;
+           background: rgba(100, 150, 255, 0.1);
+           mix-blend-mode: multiply;
+           pointer-events: none;
+           z-index: 400;
+         }
+         
+         /* Default OSM with lighter dark theme + subtle blue tone + toned down labels */
+         .default-theme-dark {
+           filter: invert(1) brightness(0.8) contrast(0.85) saturate(0.3) grayscale(0.7) hue-rotate(15deg);
+         }
+         
+         /* Dark CARTO theme with blue tone */
+         .dark-theme-blue {
+           filter: hue-rotate(220deg) saturate(1.3) brightness(1.0) contrast(1.1);
+         }
+         
+         
+         /* Reset zoom controls to default Leaflet positioning within our container */
+         .leaflet-top.leaflet-left {
+           top: 10px !important;
+           left: 10px !important;
+         }
+         
+         /* Make sure all leaflet controls stay within bounds */
+         .leaflet-control-container {
+           pointer-events: none;
+         }
+         
+         .leaflet-control {
+           pointer-events: auto;
+         }
        `}</style>
 
-      <div style={{ height, width, position: "relative" }}>
+      <div style={{ 
+        height, 
+        width, 
+        position: "relative", 
+        overflow: "hidden", 
+        zIndex: 1,
+        marginLeft: "0",
+        paddingLeft: "0",
+        backgroundColor: "#070B13"
+      }}>
         {/* Google Maps Style Layer Switcher */}
         <div
           style={{
@@ -86,6 +154,7 @@ function LeafletMap({
             display: "flex",
             flexDirection: "column",
             gap: "8px",
+            pointerEvents: "auto",
           }}
         >
           {Object.entries(themes).map(([key, theme]) => (
@@ -175,8 +244,9 @@ function LeafletMap({
             [14.712450787098618, 120.59856467222914],
           ]}
           maxBoundsViscosity={0.7}
-          style={{ height: "100%", width: "100%" }}
+          style={{ height: "100%", width: "100%", backgroundColor: "#070B13" }}
         >
+          
           <TileLayer
             key={currentTheme}
             attribution={
@@ -184,9 +254,14 @@ function LeafletMap({
             }
             url={themes[currentTheme as keyof typeof themes].url}
             className={
-              currentTheme === "satellite" ? "night-satellite-base" : ""
+              currentTheme === "satellite" 
+                ? "night-satellite-base" 
+                : currentTheme === "default"
+                ? "default-theme-dark"
+                : ""
             }
           />
+
 
           {/* Night mode overlay */}
           {currentTheme === "night" && (
@@ -206,7 +281,15 @@ function LeafletMap({
         </MapContainer>
 
         {/* Dark theme lightening overlay */}
-        {currentTheme === "dark" && <div className="dark-theme-overlay" />}
+        {currentTheme === "dark" && (
+          <>
+            <div className="dark-theme-overlay" />
+            <div className="dark-theme-blue-overlay" />
+          </>
+        )}
+        
+        {/* Blue overlay for default theme */}
+        {currentTheme === "default" && <div className="default-theme-blue-overlay" />}
       </div>
     </>
   );

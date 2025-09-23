@@ -7,7 +7,7 @@ export default function RootLayout() {
   
   return (
     <div className="flex h-screen bg-[#070B13] overflow-hidden">
-      <div className="fixed h-screen">
+      <div className="fixed h-screen z-50">
         <Sidebar />
       </div>
       
