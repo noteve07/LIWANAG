@@ -1,29 +1,57 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Lightbulb, Server, BarChart3, Bot } from 'lucide-react';
+import { LayoutDashboard, Lightbulb, Server, BarChart3, Bot, Bell, Mail, User, Search } from 'lucide-react';
 
 function Header() {
   return (
-  <header className="bg-gradient-to-r from-[#13172e] via-[#1a1a2e] to-[#13172e#13172e] text-white px-5 py-5 shadow-xl border-b border-blue-900/50">
-      <div className="w-full max-w-full flex justify-between items-center">
-        <div className="flex items-center ml-8">
-          {/* Modern Lightbulb Logo */}
-          <Lightbulb
-            size={40}
-            className="mr-3 text-yellow-300 drop-shadow-[0_0_8px_#ffe066]"
-            strokeWidth={2.2}
-          />
-          <span className="absolute w-fit bg-yellow-300/30 blur-xl text-2xl font-bold text-transparent">
-             LIWANAG
-          </span>
-          <h1 className="text-xl sm:text-2xl font-bold text-yellow-300">
-              LIWANAG
-          </h1>
+  <header className="bg-[#151E2A]/95 backdrop-blur-sm text-white px-6 py-3 shadow-2xl border-b border-slate-700/50">
+      <div className="w-full flex justify-between items-center">
+        {/* Left - Official Branding */}
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
+            <img 
+              src="/src/assets/logo/bpsu_logo.png" 
+              alt="BPSU Logo" 
+              className="h-8 w-8 object-contain"
+            />
+            <div className="h-8 w-px bg-slate-600"></div>
+            <img 
+              src="/src/assets/logo/balanga_seal.png" 
+              alt="Balanga City Seal" 
+              className="h-8 w-8 object-contain"
+            />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">City Government of Balanga</span>
+            <span className="text-sm text-gray-300 font-medium">Street Illumination Management System</span>
+          </div>
         </div>
-
-        <p className="text-md text-yellow-400/70 hidden sm:block">Lightning Intelligence With Automated Navigation for Analytics & Governance</p>
-
-        <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
-          {/*Profile logo or use BPSU logo and Balanga City Logo*/}
+        
+        {/* Right - User Actions */}
+        <div className="flex items-center space-x-6">
+          {/* Status Indicator */}
+          <div className="flex items-center space-x-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-xs text-green-300 font-medium">System Online</span>
+          </div>
+          
+          {/* Utility Icons */}
+          <div className="flex items-center space-x-1 bg-slate-800/30 rounded-full p-1">
+            <button className="p-2.5 hover:bg-yellow-400/20 rounded-full transition-all duration-200 group relative">
+              <Bell size={18} className="text-gray-300 group-hover:text-yellow-300 transition-colors" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full"></span>
+            </button>
+            
+            <button className="p-2.5 hover:bg-yellow-400/20 rounded-full transition-all duration-200 group">
+              <Mail size={18} className="text-gray-300 group-hover:text-yellow-300 transition-colors" />
+            </button>
+            
+            <div className="w-px h-6 bg-slate-600 mx-1"></div>
+            
+            <button className="flex items-center space-x-2 p-2 hover:bg-yellow-400/20 rounded-full transition-all duration-200 group">
+              <User size={18} className="text-gray-300 group-hover:text-yellow-300 transition-colors" />
+              <span className="text-sm text-gray-300 group-hover:text-white pr-1">Admin</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -32,18 +60,29 @@ function Header() {
 
 function Sidebar() {
   return (
-    <aside className="w-64 h-screen overflow-y-auto bg-gradient-to-b from-[#181c33] via-[#0c0c3b] to-[#19243f] border-r border-blue-900/40 shadow-xl rounded-tr-2xl rounded-br-2xl flex flex-col">
-      <nav className="flex-1 flex flex-col p-6">
-        <div className="mb-6 flex flex-col items-start">
-          <h2 className="text-2xl font-extrabold text-yellow-400 tracking-wide mb-2">Menu</h2>
-          <div className="w-12 h-1 bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-400 rounded-full mb-2" />
+    <aside className="w-72 h-full overflow-y-auto bg-gradient-to-b from-[#151E2A] via-[#141b26] to-[#131821] border-r border-slate-700/60 shadow-2xl flex flex-col">
+      {/* LIWANAG Logo and App Name */}
+      <div className="px-6 py-6 bg-gradient-to-r from-yellow-400/5 to-transparent">
+        <div className="flex items-center group">
+          <div className="relative">
+            <Lightbulb
+              size={42}
+              className="mr-4 text-yellow-300 drop-shadow-[0_0_12px_#ffe066] group-hover:drop-shadow-[0_0_20px_#ffe066] transition-all duration-300"
+              strokeWidth={2.2}
+            />
+            <div className="absolute inset-0 bg-yellow-300/20 blur-xl rounded-full"></div>
+          </div>
+          <h1 className="text-2xl font-bold text-yellow-300 tracking-wide">LIWANAG</h1>
         </div>
-        <ul className="space-y-2 flex-1">
+      </div>
+      
+      <nav className="flex-1 flex flex-col px-4 pb-6">
+        <ul className="space-y-1 flex-1 mt-4">
           <li>
             <NavLink to="/dashboard" className={({isActive}) => 
               isActive
-                ? "flex items-center gap-3 p-3 bg-blue-700/70 text-white rounded-lg shadow-md border-l-4 border-yellow-400 font-semibold transition-all duration-150"
-                : "flex items-center gap-3 p-3 text-white hover:bg-blue-900/40 hover:text-yellow-200 rounded-lg transition-all duration-150"
+                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
+                : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
             }>
               <LayoutDashboard className="w-5 h-5" />
               Dashboard
@@ -52,8 +91,8 @@ function Sidebar() {
           <li>
             <NavLink to="/streetIllumination" className={({isActive}) => 
               isActive
-                ? "flex items-center gap-3 p-3 bg-blue-700/70 text-white rounded-lg shadow-md border-l-4 border-yellow-400 font-semibold transition-all duration-150"
-                : "flex items-center gap-3 p-3 text-white hover:bg-blue-900/40 hover:text-yellow-200 rounded-lg transition-all duration-150"
+                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
+                : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
             }>
               <Lightbulb className="w-5 h-5" />
               Street Illumination
@@ -62,8 +101,8 @@ function Sidebar() {
           <li>
             <NavLink to="/deviceManager" className={({isActive}) => 
               isActive
-                ? "flex items-center gap-3 p-3 bg-blue-700/70 text-white rounded-lg shadow-md border-l-4 border-yellow-400 font-semibold transition-all duration-150"
-                : "flex items-center gap-3 p-3 text-white hover:bg-blue-900/40 hover:text-yellow-200 rounded-lg transition-all duration-150"
+                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
+                : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
             }>
               <Server className="w-5 h-5" />
               Device Manager
@@ -72,8 +111,8 @@ function Sidebar() {
           <li>
             <NavLink to="/analytics" className={({isActive}) => 
               isActive
-                ? "flex items-center gap-3 p-3 bg-blue-700/70 text-white rounded-lg shadow-md border-l-4 border-yellow-400 font-semibold transition-all duration-150"
-                : "flex items-center gap-3 p-3 text-white hover:bg-blue-900/40 hover:text-yellow-200 rounded-lg transition-all duration-150"
+                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
+                : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
             }>
               <BarChart3 className="w-5 h-5" />
               Analytics
@@ -82,8 +121,8 @@ function Sidebar() {
           <li>
             <NavLink to="/luxor" className={({isActive}) => 
               isActive
-                ? "flex items-center gap-3 p-3 bg-blue-700/70 text-white rounded-lg shadow-md border-l-4 border-yellow-400 font-semibold transition-all duration-150"
-                : "flex items-center gap-3 p-3 text-white hover:bg-blue-900/40 hover:text-yellow-200 rounded-lg transition-all duration-150"
+                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
+                : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
             }>
               <Bot className="w-5 h-5" />
               Luxor
