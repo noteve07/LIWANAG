@@ -154,7 +154,7 @@ function Analytics() {
 
   // Updated rendering code
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="container mx-auto p-4">
       {/* Header with toggle button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold text-white">Balanga City Analytics</h1>

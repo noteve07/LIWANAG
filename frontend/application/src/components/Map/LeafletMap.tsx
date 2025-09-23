@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useState } from "react";
@@ -118,10 +118,14 @@ function LeafletMap({
          }
          
          
-         /* Reset zoom controls to default Leaflet positioning within our container */
-         .leaflet-top.leaflet-left {
-           top: 10px !important;
+         /* Move zoom controls to bottom-left */
+         .leaflet-bottom.leaflet-left {
+           bottom: 20px !important;
            left: 10px !important;
+         }
+         
+         .leaflet-top.leaflet-left {
+           display: none !important;
          }
          
          /* Make sure all leaflet controls stay within bounds */
@@ -131,6 +135,68 @@ function LeafletMap({
          
          .leaflet-control {
            pointer-events: auto;
+         }
+         
+         /* Dark theme styling for Leaflet controls */
+         .leaflet-control-zoom {
+           background: rgba(17, 25, 38, 0.95) !important;
+           border: 1px solid rgba(255, 255, 255, 0.2) !important;
+           border-radius: 8px !important;
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+         }
+         
+         .leaflet-control-zoom a {
+           background: rgba(17, 25, 38, 0.9) !important;
+           color: #ffffff !important;
+           border: none !important;
+           font-size: 18px !important;
+           font-weight: bold !important;
+           transition: all 0.2s ease !important;
+         }
+         
+         .leaflet-control-zoom a:hover {
+           background: rgba(255, 255, 255, 0.1) !important;
+           color: #f3f4f6 !important;
+           transform: scale(1.05) !important;
+         }
+         
+         .leaflet-control-zoom a:first-child {
+           border-top-left-radius: 6px !important;
+           border-top-right-radius: 6px !important;
+         }
+         
+         .leaflet-control-zoom a:last-child {
+           border-bottom-left-radius: 6px !important;
+           border-bottom-right-radius: 6px !important;
+         }
+         
+         /* Attribution styling - centered */
+         .leaflet-bottom.leaflet-right {
+           bottom: 10px !important;
+           right: 50% !important;
+           transform: translateX(50%) !important;
+         }
+         
+         .leaflet-control-attribution {
+           background: rgba(17, 25, 38, 0.7) !important;
+           color: rgba(209, 213, 219, 0.6) !important;
+           border: 1px solid rgba(255, 255, 255, 0.1) !important;
+           border-radius: 6px !important;
+           font-size: 11px !important;
+           padding: 4px 8px !important;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+           margin: 0 !important;
+           opacity: 0.7 !important;
+         }
+         
+         .leaflet-control-attribution a {
+           color: rgba(255, 255, 255, 0.7) !important;
+           text-decoration: none !important;
+         }
+         
+         .leaflet-control-attribution a:hover {
+           color: rgba(255, 255, 255, 0.9) !important;
+           text-decoration: underline !important;
          }
        `}</style>
 
@@ -166,13 +232,13 @@ function LeafletMap({
                 height: "60px",
                 border:
                   currentTheme === key
-                    ? "3px solid #1976d2"
+                    ? "3px solid #fbbf24"
                     : "2px solid rgba(255,255,255,0.8)",
                 borderRadius: "8px",
                 cursor: "pointer",
                 boxShadow:
                   currentTheme === key
-                    ? "0 4px 12px rgba(25,118,210,0.3)"
+                    ? "0 4px 12px rgba(251,191,36,0.3)"
                     : "0 2px 8px rgba(0,0,0,0.2)",
                 transition: "all 0.2s ease",
                 backgroundImage: `url(${theme.previewUrl})`,
@@ -224,7 +290,7 @@ function LeafletMap({
                     width: "12px",
                     height: "12px",
                     borderRadius: "50%",
-                    background: "#1976d2",
+                    background: "#fbbf24",
                     border: "2px solid white",
                     boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
                   }}
@@ -244,6 +310,7 @@ function LeafletMap({
             [14.712450787098618, 120.59856467222914],
           ]}
           maxBoundsViscosity={0.7}
+          zoomControl={false}
           style={{ height: "100%", width: "100%", backgroundColor: "#070B13" }}
         >
 
@@ -272,9 +339,7 @@ function LeafletMap({
             />
           )}
 
-          <Marker position={balangaCenter}>
-            <Popup>Balanga City, Bataan</Popup>
-          </Marker>
+          <ZoomControl position="bottomleft" />
 
           {/* Render children overlays here */}
           {children}
