@@ -46,20 +46,49 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
   // Show loading state
   if (loading) {
     return (
-      <div
-        style={{
-          position: "relative",
-          height: height || "500px",
-          width: width || "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#f5f5f5",
-          color: "#666",
-          fontSize: "16px",
-        }}
-      >
-        Loading illumination data...
+      <div className="h-full w-full bg-gradient-to-b from-[#0D1117] to-[#151B23] flex flex-col items-center justify-center relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(245,158,11,0.3) 1px, transparent 0)`,
+            backgroundSize: '40px 40px'
+          }}></div>
+        </div>
+        
+        {/* Main Loading Content */}
+        <div className="relative z-10 flex flex-col items-center space-y-6">
+          {/* Animated Logo */}
+          <div className="relative">
+            <div className="w-20 h-20 bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 rounded-full flex items-center justify-center shadow-2xl">
+              <svg 
+                className="w-10 h-10 text-gray-900 animate-pulse" 
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <div className="absolute inset-0 w-20 h-20 border-4 border-amber-400/30 rounded-full animate-spin" style={{
+              borderTopColor: '#f59e0b',
+              animationDuration: '2s'
+            }}></div>
+          </div>
+          
+          {/* Loading Text */}
+          <div className="text-center space-y-1">
+            <h3 className="text-lg font-medium text-white">Loading...</h3>
+          </div>
+          
+          {/* Progress Dots */}
+          <div className="flex space-x-2">
+            <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+            <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          </div>
+          
+        </div>
       </div>
     );
   }
@@ -98,8 +127,6 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
         width: width || "100%",
         overflow: "hidden",
         zIndex: 1,
-        marginLeft: "0",
-        paddingLeft: "16px", // Small padding from the left edge of content area
       }}
     >
       <MapControls
@@ -114,7 +141,6 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
         position: "relative",
         overflow: "hidden",
         zIndex: 1,
-        marginLeft: "0",
       }}>
         <LeafletMap height="100%" width="100%">
            <ZoomTracker onZoomChange={handleZoomChange} />

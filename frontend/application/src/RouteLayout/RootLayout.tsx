@@ -14,7 +14,7 @@ export default function RootLayout() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header />
         <main className="flex-1 bg-[#0D1117] overflow-hidden">
-          <div className="h-full w-full">
+          <div className="h-full w-full px-4 py-4">
             <PageTransition key={location.pathname.split('/')[1]}>
               <Outlet />
             </PageTransition>

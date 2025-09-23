@@ -68,7 +68,7 @@ function Dashboard() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="h-full flex flex-col px-8 py-4">
       <h1 className="text-3xl font-bold text-white mb-6">Lighting Dashboard</h1>
       
       {loading ? (
@@ -76,7 +76,7 @@ function Dashboard() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 content-start">
           {/* Top row metrics */}
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">% of Well-Lit Areas</h3>
