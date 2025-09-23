@@ -97,7 +97,7 @@ function Sidebar() {
           <li>
             <NavLink to="/dashboard" className={({isActive}) => 
               isActive
-                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-amber-400/20 to-amber-400/5 text-amber-100 rounded-xl shadow-lg border-l-4 border-amber-400 font-medium transition-all duration-200 transform scale-[1.02]"
+                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
                 : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
             }>
               <LayoutDashboard className="w-5 h-5" />
@@ -107,7 +107,7 @@ function Sidebar() {
           <li>
             <NavLink to="/streetIllumination" className={({isActive}) => 
               isActive
-                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-amber-400/20 to-amber-400/5 text-amber-100 rounded-xl shadow-lg border-l-4 border-amber-400 font-medium transition-all duration-200 transform scale-[1.02]"
+                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
                 : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
             }>
               <Lightbulb className="w-5 h-5" />
@@ -117,7 +117,7 @@ function Sidebar() {
           <li>
             <NavLink to="/deviceManager" className={({isActive}) => 
               isActive
-                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-amber-400/20 to-amber-400/5 text-amber-100 rounded-xl shadow-lg border-l-4 border-amber-400 font-medium transition-all duration-200 transform scale-[1.02]"
+                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
                 : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
             }>
               <Server className="w-5 h-5" />
@@ -127,7 +127,7 @@ function Sidebar() {
           <li>
             <NavLink to="/analytics" className={({isActive}) => 
               isActive
-                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-amber-400/20 to-amber-400/5 text-amber-100 rounded-xl shadow-lg border-l-4 border-amber-400 font-medium transition-all duration-200 transform scale-[1.02]"
+                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
                 : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
             }>
               <BarChart3 className="w-5 h-5" />
@@ -137,7 +137,7 @@ function Sidebar() {
           <li>
             <NavLink to="/luxor" className={({isActive}) => 
               isActive
-                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-amber-400/20 to-amber-400/5 text-amber-100 rounded-xl shadow-lg border-l-4 border-amber-400 font-medium transition-all duration-200 transform scale-[1.02]"
+                ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
                 : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
             }>
               <Bot className="w-5 h-5" />

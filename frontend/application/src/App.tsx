@@ -9,6 +9,7 @@
  * - Child routes render within the <Outlet /> component in RootLayout
  */
 
+import { useState, useEffect } from 'react';
 import { Route, RouterProvider, createBrowserRouter, createRoutesFromElements } from 'react-router-dom'
 import Dashboard from './Pages/Dashboard/Dashboard';
 import DeviceManager from './Pages/DeviceManager/DeviceManager';
@@ -19,8 +20,20 @@ import StreetIllumination from './Pages/StreetIllumination';
 import RootLayout from './RouteLayout/RootLayout';
 import AnalyticsLayout from './RouteLayout/AnalyticsLayout';
 import Error404 from './Pages/Error404';
+import LoadingScreen from './components/LoadingScreen';
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Show loading screen for 3 seconds on every refresh
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path='/' element={<RootLayout />}>
@@ -38,6 +51,11 @@ function App() {
       </Route>
     )
   )
+
+  // Show loading screen for 3 seconds, then show the app
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   return <RouterProvider router={router} />;
 }
