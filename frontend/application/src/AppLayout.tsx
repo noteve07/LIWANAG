@@ -3,12 +3,15 @@ import { LayoutDashboard, Lightbulb, Server, BarChart3, Bot } from 'lucide-react
 
 function Header() {
   return (
-    <header className="bg-gray-900 text-white p-4 shadow-md">
-      <div className="container mx-auto flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-yellow-300">LIWANAG</h1>
-        <div className="flex items-center space-x-4">
-          <span>Welcome, Admin</span>
-          <button className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm">
+    <header className="bg-gray-900 text-white px-4 py-3 shadow-md">
+      <div className="w-full max-w-full flex justify-between items-center">
+        <h1 className="text-xl sm:text-2xl font-bold text-yellow-300 flex-shrink-0 ml-8">
+          LIWANAG
+        </h1>
+        <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+          <span className="text-sm sm:text-base hidden sm:inline">Welcome, Admin</span>
+          <span className="text-sm sm:hidden">Admin</span>
+          <button className="bg-red-600 hover:bg-red-700 px-2 sm:px-3 py-1 rounded text-xs sm:text-sm whitespace-nowrap">
             Logout
           </button>
         </div>
