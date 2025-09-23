@@ -60,7 +60,7 @@ function LeafletMap({
     <>
       <style>{`
          .night-satellite-base {
-           filter: hue-rotate(200deg) saturate(0.2) brightness(0.45) contrast(1.3) grayscale(0.3);
+           filter: hue-rotate(200deg) saturate(0.2) brightness(0.55) contrast(1.3) grayscale(0.3);
            opacity: 0.75;
          }
          
@@ -80,9 +80,41 @@ function LeafletMap({
            z-index: 400;
          }
          
-         /* Default OSM with dark filters */
+         /* Blue overlay for dark theme - adjusted brightness/contrast/saturation */
+         .dark-theme-blue-overlay {
+           position: absolute;
+           top: 0;
+           left: 0;
+           right: 0;
+           bottom: 0;
+           background: rgba(100, 150, 255, 0.2);
+           mix-blend-mode: multiply;
+           pointer-events: none;
+           z-index: 401;
+           filter: brightness(1.1) contrast(1.2) saturate(1.4);
+         }
+         
+         /* Blue overlay for default theme */
+         .default-theme-blue-overlay {
+           position: absolute;
+           top: 0;
+           left: 0;
+           right: 0;
+           bottom: 0;
+           background: rgba(100, 150, 255, 0.1);
+           mix-blend-mode: multiply;
+           pointer-events: none;
+           z-index: 400;
+         }
+         
+         /* Default OSM with lighter dark theme + subtle blue tone + toned down labels */
          .default-theme-dark {
-           filter: brightness(0.6) contrast(1.2) saturate(0.8) hue-rotate(5deg);
+           filter: invert(1) brightness(0.8) contrast(0.85) saturate(0.3) grayscale(0.7) hue-rotate(15deg);
+         }
+         
+         /* Dark CARTO theme with blue tone */
+         .dark-theme-blue {
+           filter: hue-rotate(220deg) saturate(1.3) brightness(1.0) contrast(1.1);
          }
          
          
@@ -248,7 +280,15 @@ function LeafletMap({
         </MapContainer>
 
         {/* Dark theme lightening overlay */}
-        {currentTheme === "dark" && <div className="dark-theme-overlay" />}
+        {currentTheme === "dark" && (
+          <>
+            <div className="dark-theme-overlay" />
+            <div className="dark-theme-blue-overlay" />
+          </>
+        )}
+        
+        {/* Blue overlay for default theme */}
+        {currentTheme === "default" && <div className="default-theme-blue-overlay" />}
       </div>
     </>
   );
