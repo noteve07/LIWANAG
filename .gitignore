@@ -2,3 +2,10 @@
 backend/.env
 
 backend/app/__pycache__/main.cpython-313.pyc
+backend/app/api/v1/endpoints/__pycache__/illumination_data.cpython-313.pyc
+backend/app/api/v1/endpoints/__pycache__/illumination.cpython-313.pyc
+backend/app/api/v1/__pycache__/routes.cpython-313.pyc
+backend/app/__pycache__/main.cpython-313.pyc
+backend/app/__pycache__/main.cpython-313.pyc
+backend/app/api/v1/__pycache__/routes.cpython-313.pyc
+backend/app/api/v1/endpoints/__pycache__/illumination.cpython-313.pyc
