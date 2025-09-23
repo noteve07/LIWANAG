@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useState } from "react";
@@ -141,7 +141,8 @@ function LeafletMap({
         overflow: "hidden", 
         zIndex: 1,
         marginLeft: "0",
-        paddingLeft: "0"
+        paddingLeft: "0",
+        backgroundColor: "#070B13"
       }}>
         {/* Google Maps Style Layer Switcher */}
         <div
@@ -243,7 +244,7 @@ function LeafletMap({
             [14.712450787098618, 120.59856467222914],
           ]}
           maxBoundsViscosity={0.7}
-          style={{ height: "100%", width: "100%" }}
+          style={{ height: "100%", width: "100%", backgroundColor: "#070B13" }}
         >
           
           <TileLayer
