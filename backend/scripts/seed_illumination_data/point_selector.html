@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Point Selector Tool</title>
+    <title>Illumination Point Selector</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <style>
@@ -269,7 +269,7 @@
     <div id="map"></div>
     
     <div id="controls" class="hidden">
-        <h1>🎯 Point Selector Tool</h1>
+        <h1>🎯 Illumination Point Selector</h1>
         
         <div class="control-group">
             <h3>Selection Mode</h3>
@@ -288,10 +288,9 @@
         
         <div class="control-group">
             <h3>Actions</h3>
-            <button class="action-btn" id="add-point">📍 Add Point at Center</button>
             <button class="clear-btn" id="clear-selection">🗑️ Clear Selection</button>
             <button class="export-btn" id="export-json">💾 Export Selected as JSON</button>
-            <button class="load-btn" id="load-points">📁 Load Points from JSON</button>
+            <button class="load-btn" id="load-points">📁 Load Different Dataset</button>
         </div>
         
         <div class="control-group">
@@ -320,18 +319,30 @@
         </div>
         
         <div class="legend">
-            <h3>Legend</h3>
+            <h3>Lux Level Legend</h3>
             <div class="legend-item">
-                <div class="legend-color" style="background: #3498db;"></div>
-                <span>Available Points</span>
+                <div class="legend-color" style="background: #e74c3c;"></div>
+                <span>Red (0-200 lux)</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: #f39c12;"></div>
-                <span>Selected Points</span>
+                <span>Orange (200-400 lux)</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background: #e74c3c;"></div>
-                <span>Added Points</span>
+                <div class="legend-color" style="background: #f1c40f;"></div>
+                <span>Yellow (400-600 lux)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2ecc71;"></div>
+                <span>Yellow-Green (600-800 lux)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #27ae60;"></div>
+                <span>Green (800-1000 lux)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f39c12; border: 3px solid #e67e22;"></div>
+                <span>Selected Points (thick border)</span>
             </div>
         </div>
     </div>
@@ -351,7 +362,8 @@
         let isMultiSelect = true;
         let isDragSelect = false;
         let drawControl;
-        let nextPointId = 1;
+        let illuminationData = [];
+        let filteredData = [];
 
         // Initialize map
         function initMap() {
@@ -390,7 +402,7 @@
                 }
             });
             
-            // Handle map clicks to add points or select
+            // Handle map clicks to select points
             map.on('click', function(e) {
                 if (isDragSelect) return;
                 
@@ -405,10 +417,9 @@
                 
                 if (clickedPoint) {
                     togglePointSelection(clickedPoint);
-                } else {
-                    // Add new point at click location
-                    addPointAtLocation(e.latlng.lat, e.latlng.lng);
                 }
+                // Note: We no longer add new points on empty map clicks
+                // All points come from the illumination dataset
             });
         }
 
@@ -428,33 +439,46 @@
             updateLastAction(`Added point at ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
         }
 
+        // Get color based on lux value
+        function getLuxColor(lux) {
+            if (lux >= 800) {
+                return '#27ae60'; // Green (800-1000)
+            } else if (lux >= 600) {
+                return '#2ecc71'; // Yellow-green (600-800)
+            } else if (lux >= 400) {
+                return '#f1c40f'; // Yellow (400-600)
+            } else if (lux >= 200) {
+                return '#f39c12'; // Orange (200-400)
+            } else {
+                return '#e74c3c'; // Red (0-200)
+            }
+        }
+
         // Create point marker
-        function createPointMarker(pointData, isNewPoint = false) {
-            const marker = L.circleMarker([pointData.lat, pointData.lng], {
-                radius: 6,
-                fillColor: isNewPoint ? '#e74c3c' : '#3498db',
-                color: isNewPoint ? '#c0392b' : '#2980b9',
-                weight: 2,
+        function createPointMarker(pointData) {
+            const luxColor = getLuxColor(pointData.lux);
+            const marker = L.circleMarker([pointData.lat, pointData.lon], {
+                radius: 4,
+                fillColor: luxColor,
+                color: luxColor,
+                weight: 1,
                 opacity: 0.8,
-                fillOpacity: 0.6
+                fillOpacity: 0.8
             });
 
             // Create popup with point information
             const popupContent = `
-                <div style="font-family: Arial, sans-serif; min-width: 200px;">
-                    <strong>Point #${pointData.id || 'N/A'}</strong><br>
-                    <strong>Coordinates:</strong> ${pointData.lat.toFixed(6)}, ${pointData.lng.toFixed(6)}<br>
-                    <strong>Type:</strong> ${pointData.type || 'unknown'}<br>
-                    ${pointData.timestamp ? `<strong>Created:</strong> ${new Date(pointData.timestamp).toLocaleString()}<br>` : ''}
-                    ${pointData.description ? `<strong>Description:</strong> ${pointData.description}<br>` : ''}
+                <div style="font-family: Arial, sans-serif; min-width: 250px;">
+                    <strong>Illumination Point #${pointData.id}</strong><br>
+                    <strong>Coordinates:</strong> ${pointData.lat.toFixed(6)}, ${pointData.lon.toFixed(6)}<br>
+                    <strong>Lux:</strong> ${pointData.lux} lux<br>
+                    <strong>Street ID:</strong> ${pointData.street_id}<br>
+                    <strong>Barangay ID:</strong> ${pointData.barangay_id}<br>
+                    ${pointData.created_at ? `<strong>Created:</strong> ${new Date(pointData.created_at).toLocaleString()}<br>` : ''}
                     <div style="margin-top: 10px;">
                         <button onclick="togglePointSelection(${JSON.stringify(pointData).replace(/"/g, '&quot;')})" 
                                 style="padding: 5px 10px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;">
                             ${selectedPoints.some(p => p.id === pointData.id) ? 'Deselect' : 'Select'}
-                        </button>
-                        <button onclick="removePoint(${pointData.id})" 
-                                style="padding: 5px 10px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                            Remove
                         </button>
                     </div>
                 </div>
@@ -482,10 +506,11 @@
                     selectedPoints = [];
                 }
                 if (layer) {
+                    const luxColor = getLuxColor(pointData.lux);
                     layer.setStyle({
-                        fillColor: pointData.type === 'user_added' ? '#e74c3c' : '#3498db',
-                        color: pointData.type === 'user_added' ? '#c0392b' : '#2980b9',
-                        weight: 2
+                        fillColor: luxColor,
+                        color: luxColor,
+                        weight: 1
                     });
                 }
                 updateLastAction(`Deselected point #${pointData.id}`);
@@ -496,10 +521,11 @@
                     selectedPoints.forEach(p => {
                         const prevLayer = pointLayers.find(l => l.pointData && l.pointData.id === p.id);
                         if (prevLayer) {
+                            const luxColor = getLuxColor(p.lux);
                             prevLayer.setStyle({
-                                fillColor: p.type === 'user_added' ? '#e74c3c' : '#3498db',
-                                color: p.type === 'user_added' ? '#c0392b' : '#2980b9',
-                                weight: 2
+                                fillColor: luxColor,
+                                color: luxColor,
+                                weight: 1
                             });
                         }
                     });
@@ -555,10 +581,11 @@
             selectedPoints.forEach(pointData => {
                 const layer = pointLayers.find(l => l.pointData && l.pointData.id === pointData.id);
                 if (layer) {
+                    const luxColor = getLuxColor(pointData.lux);
                     layer.setStyle({
-                        fillColor: pointData.type === 'user_added' ? '#e74c3c' : '#3498db',
-                        color: pointData.type === 'user_added' ? '#c0392b' : '#2980b9',
-                        weight: 2
+                        fillColor: luxColor,
+                        color: luxColor,
+                        weight: 1
                     });
                 }
             });
@@ -568,6 +595,79 @@
             updateSelectionInfo();
             updatePopups();
             updateLastAction('Cleared all selections');
+        }
+
+        // Load illumination data from JSON file
+        async function loadIlluminationData() {
+            try {
+                const response = await fetch('new_streets_seed/illumination_data.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                // Handle different JSON structures
+                if (data.illumination_data) {
+                    return data.illumination_data; // Wrapped format
+                } else if (Array.isArray(data)) {
+                    return data; // Direct array format
+                } else {
+                    throw new Error('Unrecognized JSON format - expected illumination_data property or direct array');
+                }
+            } catch (error) {
+                console.error('Error loading illumination data:', error);
+                // Fallback: try to load from current directory
+                try {
+                    const response = await fetch('illumination_data.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    
+                    // Handle different JSON structures for fallback too
+                    if (data.illumination_data) {
+                        return data.illumination_data; // Wrapped format
+                    } else if (Array.isArray(data)) {
+                        return data; // Direct array format
+                    } else {
+                        throw new Error('Unrecognized JSON format - expected illumination_data property or direct array');
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallback loading also failed:', fallbackError);
+                    return [];
+                }
+            }
+        }
+
+        // Create illumination markers from data
+        function createIlluminationMarkers(data) {
+            // Clear existing layers
+            pointLayers.forEach(layer => map.removeLayer(layer));
+            pointLayers = [];
+            
+            // Convert to expected format and create markers
+            data.forEach(point => {
+                const pointData = {
+                    id: point.id,
+                    lat: point.lat,
+                    lon: point.lon,
+                    lux: point.lux,
+                    street_id: point.street_id,
+                    barangay_id: point.barangay_id,
+                    created_at: point.created_at,
+                    geo_hash: point.geo_hash,
+                    geom: point.geom
+                };
+                
+                allPoints.push(pointData);
+                createPointMarker(pointData);
+            });
+            
+            // Fit map to show all points
+            if (pointLayers.length > 0) {
+                const group = L.featureGroup(pointLayers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
         }
 
         // Remove point
@@ -761,8 +861,8 @@
                 li.innerHTML = `
                     <div class="point-details">
                         <strong>Point #${point.id}</strong><br>
-                        <small>${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}</small><br>
-                        <small>Type: ${point.type || 'unknown'}</small>
+                        <small>${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}</small><br>
+                        <small>Lux: ${point.lux} | Street: ${point.street_id} | Barangay: ${point.barangay_id}</small>
                     </div>
                 `;
                 detailsList.appendChild(li);
@@ -777,20 +877,17 @@
                     const isSelected = selectedPoints.some(p => p.id === pointData.id);
                     
                     const popupContent = `
-                        <div style="font-family: Arial, sans-serif; min-width: 200px;">
-                            <strong>Point #${pointData.id || 'N/A'}</strong><br>
-                            <strong>Coordinates:</strong> ${pointData.lat.toFixed(6)}, ${pointData.lng.toFixed(6)}<br>
-                            <strong>Type:</strong> ${pointData.type || 'unknown'}<br>
-                            ${pointData.timestamp ? `<strong>Created:</strong> ${new Date(pointData.timestamp).toLocaleString()}<br>` : ''}
-                            ${pointData.description ? `<strong>Description:</strong> ${pointData.description}<br>` : ''}
+                        <div style="font-family: Arial, sans-serif; min-width: 250px;">
+                            <strong>Illumination Point #${pointData.id}</strong><br>
+                            <strong>Coordinates:</strong> ${pointData.lat.toFixed(6)}, ${pointData.lon.toFixed(6)}<br>
+                            <strong>Lux:</strong> ${pointData.lux} lux<br>
+                            <strong>Street ID:</strong> ${pointData.street_id}<br>
+                            <strong>Barangay ID:</strong> ${pointData.barangay_id}<br>
+                            ${pointData.created_at ? `<strong>Created:</strong> ${new Date(pointData.created_at).toLocaleString()}<br>` : ''}
                             <div style="margin-top: 10px;">
                                 <button onclick="togglePointSelection(${JSON.stringify(pointData).replace(/"/g, '&quot;')})" 
                                         style="padding: 5px 10px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;">
                                     ${isSelected ? 'Deselect' : 'Select'}
-                                </button>
-                                <button onclick="removePoint(${pointData.id})" 
-                                        style="padding: 5px 10px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                    Remove
                                 </button>
                             </div>
                         </div>
@@ -832,56 +929,46 @@
             document.getElementById('multi-select').addEventListener('change', updateModeIndicator);
             document.getElementById('drag-select').addEventListener('change', updateModeIndicator);
             
-            document.getElementById('add-point').addEventListener('click', () => {
-                const center = map.getCenter();
-                addPointAtLocation(center.lat, center.lng);
-            });
-            
             document.getElementById('clear-selection').addEventListener('click', clearSelection);
             document.getElementById('export-json').addEventListener('click', exportSelectedPoints);
             document.getElementById('load-points').addEventListener('click', loadPointsFromJSON);
         }
 
         // Initialize the application
-        function init() {
+        async function init() {
             try {
                 initMap();
                 setupEventListeners();
                 updateModeIndicator();
                 updateStats();
-                updateLastAction('Application initialized');
+                updateLastAction('Loading illumination data...');
                 
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('controls').classList.remove('hidden');
-                
-                // Add some sample points for demonstration
-                const samplePoints = [
-                    { lat: 14.6833, lng: 120.5333, type: 'sample', description: 'Sample point 1' },
-                    { lat: 14.6843, lng: 120.5343, type: 'sample', description: 'Sample point 2' },
-                    { lat: 14.6823, lng: 120.5323, type: 'sample', description: 'Sample point 3' }
-                ];
-                
-                samplePoints.forEach(point => {
-                    const pointData = {
-                        id: nextPointId++,
-                        lat: point.lat,
-                        lng: point.lng,
-                        type: point.type,
-                        description: point.description,
-                        timestamp: new Date().toISOString()
-                    };
-                    allPoints.push(pointData);
-                    createPointMarker(pointData);
-                });
-                
-                updateStats();
-                updateLastAction('Added sample points');
+                // Load illumination data
+                const data = await loadIlluminationData();
+                if (data && data.length > 0) {
+                    illuminationData = data;
+                    filteredData = data;
+                    allPoints = []; // Clear points array before loading
+                    createIlluminationMarkers(data);
+                    
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('controls').classList.remove('hidden');
+                    
+                    updateStats();
+                    updateLastAction(`Loaded ${data.length} illumination points from dataset`);
+                    
+                    console.log(`Successfully loaded ${data.length} illumination points`);
+                } else {
+                    throw new Error('No illumination data found or empty dataset');
+                }
                 
             } catch (error) {
                 console.error('Initialization error:', error);
                 document.getElementById('loading').innerHTML = `
-                    <h2>Error Loading Application</h2>
-                    <p>Check console for details</p>
+                    <h2>Error Loading Illumination Data</h2>
+                    <p>Could not load illumination_data.json</p>
+                    <p>Make sure the file exists in the new_streets_seed folder</p>
+                    <p>Error: ${error.message}</p>
                 `;
             }
         }

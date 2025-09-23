@@ -246,7 +246,7 @@ function LeafletMap({
           maxBoundsViscosity={0.7}
           style={{ height: "100%", width: "100%", backgroundColor: "#070B13" }}
         >
-          
+
           <TileLayer
             key={currentTheme}
             attribution={
@@ -287,7 +287,7 @@ function LeafletMap({
             <div className="dark-theme-blue-overlay" />
           </>
         )}
-        
+
         {/* Blue overlay for default theme */}
         {currentTheme === "default" && <div className="default-theme-blue-overlay" />}
       </div>

@@ -1,0 +1,10 @@
+export const ZOOM_THRESHOLDS = {
+  POLYLINES_MAX: 16,
+  MARKERS_MIN: 17,
+} as const;
+
+export const MAP_CONFIG = {
+  DEFAULT_ZOOM: 13,
+  MAX_CONNECTION_DISTANCE: 50,
+  INTERPOLATION_STEPS: 10,
+} as const;
