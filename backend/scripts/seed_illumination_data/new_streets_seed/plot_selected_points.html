@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selected Points Plotter</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        
+        #map { 
+            height: 100vh; 
+            width: 100%; 
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            width: 350px;
+            max-height: 80vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .info-group {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .info-group h3 {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .stats {
+            background: #e8f4fc;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        
+        .stats p {
+            margin: 5px 0;
+            color: #2c3e50;
+        }
+        
+        .legend {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 10px;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px 0;
+            transition: all 0.3s ease;
+            background: #3498db;
+            color: white;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .export-btn {
+            background: #27ae60;
+        }
+        
+        .export-btn:hover {
+            background: #229954;
+        }
+        
+        .load-btn {
+            background: #9b59b6;
+        }
+        
+        .load-btn:hover {
+            background: #8e44ad;
+        }
+        
+        .metadata {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            color: #856404;
+            font-size: 0.9em;
+        }
+        
+        .metadata h4 {
+            margin-bottom: 8px;
+            color: #6c5500;
+        }
+        
+        .bounds-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 6px;
+            padding: 8px;
+            margin: 8px 0;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <h2>Loading Selected Points...</h2>
+        <p>Please wait while we load and plot your selected points</p>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div id="controls" class="hidden">
+        <h1>📍 Selected Points Plotter</h1>
+        
+        <div class="info-group">
+            <h3>Dataset Information</h3>
+            <div class="metadata" id="metadata-info">
+                <h4>Loading metadata...</h4>
+            </div>
+            <div class="stats">
+                <p><strong>Total Points:</strong> <span id="total-points">0</span></p>
+                <p><strong>Points Plotted:</strong> <span id="plotted-points">0</span></p>
+                <p><strong>Export Source:</strong> <span id="export-source">Unknown</span></p>
+            </div>
+        </div>
+        
+        <div class="info-group">
+            <h3>Bounds Information</h3>
+            <div class="bounds-info" id="bounds-info">
+                Loading bounds information...
+            </div>
+        </div>
+        
+        <div class="info-group">
+            <h3>Actions</h3>
+            <button class="load-btn" id="load-file">📁 Load Different File</button>
+            <button class="export-btn" id="export-csv">📊 Export as CSV</button>
+            <button id="fit-bounds">🔍 Fit Map to Points</button>
+        </div>
+        
+        <div class="legend">
+            <h3>Lux Level Legend</h3>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e74c3c;"></div>
+                <span>Red (0-200 lux)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f39c12;"></div>
+                <span>Orange (200-400 lux)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f1c40f;"></div>
+                <span>Yellow (400-600 lux)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2ecc71;"></div>
+                <span>Yellow-Green (600-800 lux)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #27ae60;"></div>
+                <span>Green (800-1000 lux)</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Configuration
+        const MAP_CENTER = [14.6833, 120.5333];
+        const MAP_ZOOM = 13;
+
+        // Global variables
+        let map;
+        let pointLayers = [];
+        let selectedData = null;
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView(MAP_CENTER, MAP_ZOOM);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        // Get color based on lux value
+        function getLuxColor(lux) {
+            if (lux >= 800) {
+                return '#27ae60'; // Green (800-1000)
+            } else if (lux >= 600) {
+                return '#2ecc71'; // Yellow-green (600-800)
+            } else if (lux >= 400) {
+                return '#f1c40f'; // Yellow (400-600)
+            } else if (lux >= 200) {
+                return '#f39c12'; // Orange (200-400)
+            } else {
+                return '#e74c3c'; // Red (0-200)
+            }
+        }
+
+        // Create point marker
+        function createPointMarker(pointData) {
+            const luxColor = getLuxColor(pointData.lux);
+            const marker = L.circleMarker([pointData.lat, pointData.lon], {
+                radius: 6,
+                fillColor: luxColor,
+                color: luxColor,
+                weight: 2,
+                opacity: 0.9,
+                fillOpacity: 0.8
+            });
+
+            // Create popup with point information
+            const popupContent = `
+                <div style="font-family: Arial, sans-serif; min-width: 250px;">
+                    <strong>Selected Point #${pointData.id}</strong><br>
+                    <strong>Coordinates:</strong> ${pointData.lat.toFixed(6)}, ${pointData.lon.toFixed(6)}<br>
+                    <strong>Lux:</strong> ${pointData.lux} lux<br>
+                    <strong>Street ID:</strong> ${pointData.street_id}<br>
+                    <strong>Barangay ID:</strong> ${pointData.barangay_id}<br>
+                    ${pointData.created_at ? `<strong>Created:</strong> ${new Date(pointData.created_at).toLocaleString()}<br>` : ''}
+                    ${pointData.geo_hash ? `<strong>Geo Hash:</strong> ${pointData.geo_hash}<br>` : ''}
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            marker.pointData = pointData;
+            
+            pointLayers.push(marker);
+            map.addLayer(marker);
+            
+            return marker;
+        }
+
+        // Load selected points from JSON file
+        async function loadSelectedPoints() {
+            try {
+                const response = await fetch('selected_points.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error loading selected points:', error);
+                throw error;
+            }
+        }
+
+        // Plot points on map
+        function plotPoints(data) {
+            // Clear existing layers
+            pointLayers.forEach(layer => map.removeLayer(layer));
+            pointLayers = [];
+            
+            // Get points array based on data structure
+            let points = [];
+            if (data.points) {
+                points = data.points;
+            } else if (Array.isArray(data)) {
+                points = data;
+            } else {
+                throw new Error('Invalid data format - expected points array or wrapped format');
+            }
+            
+            // Create markers for each point
+            points.forEach(point => {
+                createPointMarker(point);
+            });
+            
+            // Fit map to show all points
+            if (pointLayers.length > 0) {
+                const group = L.featureGroup(pointLayers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+            
+            return points;
+        }
+
+        // Update UI with metadata and stats
+        function updateUI(data, points) {
+            // Update metadata
+            const metadataEl = document.getElementById('metadata-info');
+            if (data.metadata) {
+                metadataEl.innerHTML = `
+                    <h4>Export Information</h4>
+                    <p><strong>Exported:</strong> ${new Date(data.metadata.exported_at).toLocaleString()}</p>
+                    <p><strong>Source:</strong> ${data.metadata.exported_by}</p>
+                `;
+                
+                document.getElementById('export-source').textContent = data.metadata.exported_by;
+            } else {
+                metadataEl.innerHTML = '<h4>No metadata available</h4>';
+                document.getElementById('export-source').textContent = 'Unknown';
+            }
+            
+            // Update stats
+            document.getElementById('total-points').textContent = points.length;
+            document.getElementById('plotted-points').textContent = pointLayers.length;
+            
+            // Update bounds info
+            const boundsEl = document.getElementById('bounds-info');
+            if (data.metadata && data.metadata.bounds) {
+                const bounds = data.metadata.bounds;
+                boundsEl.innerHTML = `
+                    <strong>Geographic Bounds:</strong><br>
+                    North: ${bounds.north ? bounds.north.toFixed(6) : 'N/A'}<br>
+                    South: ${bounds.south ? bounds.south.toFixed(6) : 'N/A'}<br>
+                    East: ${bounds.east ? bounds.east.toFixed(6) : 'N/A'}<br>
+                    West: ${bounds.west ? bounds.west.toFixed(6) : 'N/A'}
+                `;
+            } else {
+                // Calculate bounds from points
+                if (points.length > 0) {
+                    let minLat = points[0].lat, maxLat = points[0].lat;
+                    let minLon = points[0].lon, maxLon = points[0].lon;
+                    
+                    points.forEach(point => {
+                        minLat = Math.min(minLat, point.lat);
+                        maxLat = Math.max(maxLat, point.lat);
+                        minLon = Math.min(minLon, point.lon);
+                        maxLon = Math.max(maxLon, point.lon);
+                    });
+                    
+                    boundsEl.innerHTML = `
+                        <strong>Calculated Bounds:</strong><br>
+                        North: ${maxLat.toFixed(6)}<br>
+                        South: ${minLat.toFixed(6)}<br>
+                        East: ${maxLon.toFixed(6)}<br>
+                        West: ${minLon.toFixed(6)}
+                    `;
+                }
+            }
+        }
+
+        // Export points as CSV
+        function exportAsCSV() {
+            if (!selectedData || !selectedData.points) {
+                alert('No data to export!');
+                return;
+            }
+            
+            const points = selectedData.points;
+            const headers = ['id', 'lat', 'lon', 'lux', 'street_id', 'barangay_id', 'created_at', 'geo_hash'];
+            
+            let csvContent = headers.join(',') + '\n';
+            
+            points.forEach(point => {
+                const row = [
+                    point.id || '',
+                    point.lat || '',
+                    point.lon || '',
+                    point.lux || '',
+                    point.street_id || '',
+                    point.barangay_id || '',
+                    point.created_at || '',
+                    point.geo_hash || ''
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+            
+            // Download CSV
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'selected_points.csv';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            alert(`✅ Exported ${points.length} points to CSV file!`);
+        }
+
+        // Load different file
+        async function loadDifferentFile() {
+            if ('showOpenFilePicker' in window) {
+                try {
+                    const [fileHandle] = await window.showOpenFilePicker({
+                        types: [{
+                            description: 'JSON files',
+                            accept: { 'application/json': ['.json'] }
+                        }]
+                    });
+                    
+                    const file = await fileHandle.getFile();
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+                    
+                    selectedData = data;
+                    const points = plotPoints(data);
+                    updateUI(data, points);
+                    
+                    alert(`✅ Loaded and plotted ${points.length} points!`);
+                    
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        alert('❌ Error loading file: ' + error.message);
+                        console.error('Error loading file:', error);
+                    }
+                }
+            } else {
+                alert('❌ File System Access API not supported in this browser');
+            }
+        }
+
+        // Fit map to bounds
+        function fitMapToBounds() {
+            if (pointLayers.length > 0) {
+                const group = L.featureGroup(pointLayers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            } else {
+                alert('No points to fit bounds to!');
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('load-file').addEventListener('click', loadDifferentFile);
+            document.getElementById('export-csv').addEventListener('click', exportAsCSV);
+            document.getElementById('fit-bounds').addEventListener('click', fitMapToBounds);
+        }
+
+        // Initialize the application
+        async function init() {
+            try {
+                initMap();
+                setupEventListeners();
+                
+                // Load and plot selected points
+                const data = await loadSelectedPoints();
+                selectedData = data;
+                const points = plotPoints(data);
+                updateUI(data, points);
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('controls').classList.remove('hidden');
+                
+                console.log(`Successfully loaded and plotted ${points.length} selected points`);
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('loading').innerHTML = `
+                    <h2>Error Loading Selected Points</h2>
+                    <p>Could not load selected_points.json</p>
+                    <p>Make sure the file exists in the current folder</p>
+                    <p>Error: ${error.message}</p>
+                    <button onclick="location.reload()" style="margin-top: 10px; padding: 10px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button>
+                `;
+            }
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>

@@ -62,6 +62,7 @@ def read_root():
             "set_mission": "POST /api/v1/set-mission",
             "start_mission_device": "POST /api/v1/start-mission-device",
             "stop_mission_device": "POST /api/v1/stop-mission-device",
+            "illumination_data_demo": "GET /api/v1/illumination-data-demo",
             "health": "GET /health"
         }
     }

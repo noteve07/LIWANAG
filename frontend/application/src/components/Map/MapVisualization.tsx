@@ -3,16 +3,15 @@ import { Marker, Popup, Polyline, Tooltip } from "react-leaflet";
 import LeafletMap from "./LeafletMap";
 import L from "leaflet";
 
-// Import the sample points JSON
-import samplePoints from "./from_backend.json";
-
 interface PointData {
-  id: string;
+  id: number;
   lat: number;
   lon: number;
   lux: number;
-  street_name: string;
-  barangay_name: string;
+  street_id: number;
+  barangay_id: number;
+  sensor: string;
+  created_at?: string;
 }
 
 interface MapVisualizationProps {
@@ -20,34 +19,35 @@ interface MapVisualizationProps {
   width?: string;
 }
 
-// Utility function to get color based on lux value
+// Utility function to get color based on lux value (0-25 range)
 const getLuxColor = (lux: number): string => {
-  if (lux < 100) return "#FF0000"; // Dangerous - Deep Red
-  if (lux < 200) return "#FF4444"; // Very Poor - Red
-  if (lux < 300) return "#FF8800"; // Poor - Dark Orange
-  if (lux < 400) return "#FFBB33"; // Below Standard - Orange
-  if (lux < 500) return "#FFD700"; // Fair - Gold
-  if (lux < 600) return "#FFEB3B"; // Moderate - Yellow
-  if (lux < 700) return "#76FF03"; // Good - Light Green
-  if (lux < 800) return "#00E676"; // Very Good - Medium Green
-  if (lux < 900) return "#00C851"; // Excellent - Green
-  return "#00B248"; // Optimal - Deep Green
+  if (lux < 2.5) return "#FF0000"; // Dangerous - Deep Red (0-2.5)
+  if (lux < 5) return "#FF4444"; // Very Poor - Red (2.5-5)
+  if (lux < 7.5) return "#FF8800"; // Poor - Dark Orange (5-7.5)
+  if (lux < 10) return "#FFBB33"; // Below Standard - Orange (7.5-10)
+  if (lux < 12.5) return "#FFD700"; // Fair - Gold (10-12.5)
+  if (lux < 15) return "#FFEB3B"; // Moderate - Yellow (12.5-15)
+  if (lux < 17.5) return "#76FF03"; // Good - Light Green (15-17.5)
+  if (lux < 20) return "#00E676"; // Very Good - Medium Green (17.5-20)
+  if (lux < 22.5) return "#00C851"; // Excellent - Green (20-22.5)
+  return "#00B248"; // Optimal - Deep Green (22.5-25)
 };
 
-// Create marker icon with custom color
+// Create marker icon with custom color (smaller, fixed size)
 const createLightIcon = (lux: number) => {
   const color = getLuxColor(lux);
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-      <path fill="${color}" stroke="white" stroke-width="1" d="M12 2C7.589 2 4 5.589 4 9.995C3.971 13.178 5.482 15.604 7 17c1.5 1.5 1.5 2.5 1.5 3.5v.5h7v-.5c0-1 0-2 1.5-3.5 1.518-1.396 3.029-3.823 3-7.005C20 5.589 16.411 2 12 2z"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+      <circle cx="8" cy="8" r="6" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <circle cx="8" cy="8" r="3" fill="${color}" opacity="0.7"/>
     </svg>`;
 
   return L.divIcon({
     html: svg,
-    className: "light-marker",
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    popupAnchor: [0, -10],
+    className: "light-marker-fixed",
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+    popupAnchor: [0, -8],
   });
 };
 
@@ -212,17 +212,25 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
   const [streetNames, setStreetNames] = useState<string[]>([]);
   const [showMarkers, setShowMarkers] = useState(true);
   const [showPolylines, setShowPolylines] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // CSS for markers
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
-      .light-marker {
-        filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
+      .light-marker-fixed {
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+        transform-origin: center center;
       }
-      .light-marker:hover {
-        transform: scale(1.1);
-        transition: transform 0.2s;
+      .light-marker-fixed svg {
+        width: 16px !important;
+        height: 16px !important;
+        transform: none !important;
+      }
+      .light-marker-fixed:hover {
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        transition: filter 0.2s;
       }
     `;
     document.head.appendChild(style);
@@ -231,13 +239,44 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
     };
   }, []);
 
-  // Load points data
+  // Load points data from API
   useEffect(() => {
-    setPoints(samplePoints as PointData[]);
-    const uniqueStreets = [
-      ...new Set((samplePoints as PointData[]).map((p) => p.street_name)),
-    ];
-    setStreetNames(uniqueStreets);
+    const fetchIlluminationData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch from the new illumination-data-demo endpoint
+        const response = await fetch('http://127.0.0.1:8000/api/v1/illumination-data-demo');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.data && Array.isArray(result.data)) {
+          setPoints(result.data);
+          
+          // Extract unique street IDs (since we're using street_id instead of street_name)
+          const uniqueStreetIds = [
+            ...new Set(result.data.map((p: PointData) => `Street ${p.street_id}`)),
+          ] as string[];
+          setStreetNames(uniqueStreetIds);
+          
+          console.log(`Loaded ${result.data.length} illumination points from demo dataset`);
+        } else {
+          throw new Error('Invalid data format received from API');
+        }
+      } catch (err) {
+        console.error('Error fetching illumination data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load illumination data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchIlluminationData();
   }, []);
 
   // Interpolation function
@@ -257,33 +296,113 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
     return points;
   };
 
-  // Function to create gradient line segments for a street
+  // Calculate distance between two points (in meters)
+  const calculateDistance = (point1: PointData, point2: PointData): number => {
+    const R = 6371000; // Earth's radius in meters
+    const lat1Rad = (point1.lat * Math.PI) / 180;
+    const lat2Rad = (point2.lat * Math.PI) / 180;
+    const deltaLatRad = ((point2.lat - point1.lat) * Math.PI) / 180;
+    const deltaLonRad = ((point2.lon - point1.lon) * Math.PI) / 180;
+
+    const a = Math.sin(deltaLatRad / 2) * Math.sin(deltaLatRad / 2) +
+              Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+              Math.sin(deltaLonRad / 2) * Math.sin(deltaLonRad / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  };
+
+  // Function to create gradient line segments for a street (only connect nearby points)
   const renderStreetLines = (streetName: string) => {
-    const streetPoints = points.filter((p) => p.street_name === streetName);
-
-    return streetPoints.slice(0, -1).map((point, index) => {
-      const nextPoint = streetPoints[index + 1];
-      const segments = interpolatePoints(point, nextPoint, 10);
-
-      return segments.slice(0, -1).map((segStart, segIndex) => {
-        const segEnd = segments[segIndex + 1];
-        return (
-          <Polyline
-            key={`${streetName}-line-${index}-${segIndex}`}
-            positions={[
-              [segStart.lat, segStart.lon],
-              [segEnd.lat, segEnd.lon],
-            ]}
-            pathOptions={{
-              color: getLuxColor(segStart.lux),
-              weight: 3,
-              opacity: 0.7,
-            }}
-          />
-        );
+    // Extract street ID from the streetName (format: "Street X")
+    const streetId = parseInt(streetName.replace('Street ', ''));
+    const streetPoints = points.filter((p) => p.street_id === streetId);
+    
+    // Sort points by proximity to create a logical path
+    if (streetPoints.length < 2) return [];
+    
+    const MAX_CONNECTION_DISTANCE = 100; // Maximum distance in meters to connect points
+    const connectedSegments: JSX.Element[] = [];
+    
+    // For each point, find its nearest neighbor within the connection distance
+    streetPoints.forEach((point, index) => {
+      streetPoints.forEach((otherPoint, otherIndex) => {
+        if (index >= otherIndex) return; // Avoid duplicate lines
+        
+        const distance = calculateDistance(point, otherPoint);
+        
+        // Only connect points that are close to each other
+        if (distance <= MAX_CONNECTION_DISTANCE) {
+          const segments = interpolatePoints(point, otherPoint, 10);
+          
+          segments.slice(0, -1).forEach((segStart, segIndex) => {
+            const segEnd = segments[segIndex + 1];
+            connectedSegments.push(
+              <Polyline
+                key={`${streetName}-${point.id}-${otherPoint.id}-${segIndex}`}
+                positions={[
+                  [segStart.lat, segStart.lon],
+                  [segEnd.lat, segEnd.lon],
+                ]}
+                color={getLuxColor((segStart.lux + segEnd.lux) / 2)}
+                weight={3}
+                opacity={0.8}
+              />
+            );
+          });
+        }
       });
     });
+    
+    return connectedSegments;
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div
+        style={{
+          position: "relative",
+          height: height || "500px",
+          width: width || "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#f5f5f5",
+          color: "#666",
+          fontSize: "16px",
+        }}
+      >
+        Loading illumination data...
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div
+        style={{
+          position: "relative",
+          height: height || "500px",
+          width: width || "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#fee",
+          color: "#c33",
+          fontSize: "16px",
+          padding: "20px",
+          textAlign: "center",
+        }}
+      >
+        <div>
+          <div>Failed to load illumination data</div>
+          <div style={{ fontSize: "14px", marginTop: "8px" }}>{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -337,11 +456,18 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
                 <Popup>
                   <div>
                     <strong>ID:</strong> {pt.id} <br />
-                    <strong>Street:</strong> {pt.street_name} <br />
-                    <strong>Barangay:</strong> {pt.barangay_name} <br />
+                    <strong>Sensor:</strong> {pt.sensor} <br />
+                    <strong>Street ID:</strong> {pt.street_id} <br />
+                    <strong>Barangay ID:</strong> {pt.barangay_id} <br />
                     <strong>Lux:</strong> {pt.lux} lx <br />
                     <strong>Location:</strong> [{pt.lat.toFixed(6)},{" "}
                     {pt.lon.toFixed(6)}]
+                    {pt.created_at && (
+                      <>
+                        <br />
+                        <strong>Created:</strong> {new Date(pt.created_at).toLocaleString()}
+                      </>
+                    )}
                   </div>
                 </Popup>
               </Marker>
