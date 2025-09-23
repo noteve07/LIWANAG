@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useState } from "react";
@@ -27,10 +27,16 @@ function LeafletMap({
   width = "100%",
   children,
 }: LeafletMapProps) {
-  const [currentTheme, setCurrentTheme] = useState("dark");
+  const [currentTheme, setCurrentTheme] = useState("default");
   const balangaCenter: [number, number] = [14.676, 120.536];
 
   const themes = {
+    default: {
+      name: "Default",
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: "&copy; OpenStreetMap contributors",
+      previewUrl: "/src/assets/maps/preview_default.png",
+    },
     dark: {
       name: "Dark",
       url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -73,9 +79,38 @@ function LeafletMap({
            pointer-events: none;
            z-index: 400;
          }
+         
+         /* Default OSM with dark filters */
+         .default-theme-dark {
+           filter: brightness(0.6) contrast(1.2) saturate(0.8) hue-rotate(5deg);
+         }
+         
+         
+         /* Reset zoom controls to default Leaflet positioning within our container */
+         .leaflet-top.leaflet-left {
+           top: 10px !important;
+           left: 10px !important;
+         }
+         
+         /* Make sure all leaflet controls stay within bounds */
+         .leaflet-control-container {
+           pointer-events: none;
+         }
+         
+         .leaflet-control {
+           pointer-events: auto;
+         }
        `}</style>
 
-      <div style={{ height, width, position: "relative" }}>
+      <div style={{ 
+        height, 
+        width, 
+        position: "relative", 
+        overflow: "hidden", 
+        zIndex: 1,
+        marginLeft: "0",
+        paddingLeft: "0"
+      }}>
         {/* Google Maps Style Layer Switcher */}
         <div
           style={{
@@ -86,6 +121,7 @@ function LeafletMap({
             display: "flex",
             flexDirection: "column",
             gap: "8px",
+            pointerEvents: "auto",
           }}
         >
           {Object.entries(themes).map(([key, theme]) => (
@@ -177,6 +213,7 @@ function LeafletMap({
           maxBoundsViscosity={0.7}
           style={{ height: "100%", width: "100%" }}
         >
+          
           <TileLayer
             key={currentTheme}
             attribution={
@@ -184,9 +221,14 @@ function LeafletMap({
             }
             url={themes[currentTheme as keyof typeof themes].url}
             className={
-              currentTheme === "satellite" ? "night-satellite-base" : ""
+              currentTheme === "satellite" 
+                ? "night-satellite-base" 
+                : currentTheme === "default"
+                ? "default-theme-dark"
+                : ""
             }
           />
+
 
           {/* Night mode overlay */}
           {currentTheme === "night" && (

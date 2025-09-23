@@ -290,8 +290,11 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
       style={{
         position: "relative",
         height: height || "500px",
-        width: "100%",
-        overflow: "hidden !important",
+        width: width || "100%",
+        overflow: "hidden",
+        zIndex: 1,
+        marginLeft: "0",
+        paddingLeft: "16px", // Small padding from the left edge of content area
       }}
     >
       <ControlPanel
@@ -300,7 +303,14 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
         onToggleMarkers={() => setShowMarkers((prev) => !prev)}
         onTogglePolylines={() => setShowPolylines((prev) => !prev)}
       />
-      <div style={{ height: "100%", width: "100%", position: "relative", left: 15 }}>
+      <div style={{ 
+        height: "100%", 
+        width: "100%", 
+        position: "relative",
+        overflow: "hidden",
+        zIndex: 1,
+        marginLeft: "0",
+      }}>
         <LeafletMap height="100%" width="100%">
           {showPolylines &&
             streetNames.map((streetName) => (
