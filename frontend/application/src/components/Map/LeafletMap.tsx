@@ -81,7 +81,7 @@ function LeafletMap({
           style={{
             position: "absolute",
             top: "15px",
-            right: "15px",
+            right: "30px",
             zIndex: 1000,
             display: "flex",
             flexDirection: "column",
