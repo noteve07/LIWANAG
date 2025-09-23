@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Marker, Popup, Polyline, Tooltip } from "react-leaflet";
+import { Marker, Popup, Polyline, Tooltip, useMap } from "react-leaflet";
 import LeafletMap from "./LeafletMap";
 import L from "leaflet";
 
@@ -33,21 +33,31 @@ const getLuxColor = (lux: number): string => {
   return "#00B248"; // Optimal - Deep Green (22.5-25)
 };
 
-// Create marker icon with custom color (smaller, fixed size)
-const createLightIcon = (lux: number) => {
+// Create marker icon with custom color (zoom-responsive size)
+const createLightIcon = (lux: number, zoom: number) => {
   const color = getLuxColor(lux);
+  
+  // Calculate size based on zoom level
+  // Zoom 17: 40% smaller (60% of original)
+  // Zoom 18+: normal size
+  const sizeMultiplier = zoom === 17 ? 0.6 : 1.0;
+  const size = Math.round(16 * sizeMultiplier);
+  const radius = Math.round(6 * sizeMultiplier);
+  const innerRadius = Math.round(3 * sizeMultiplier);
+  const center = size / 2;
+  
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
-      <circle cx="8" cy="8" r="6" fill="${color}" stroke="white" stroke-width="1.5"/>
-      <circle cx="8" cy="8" r="3" fill="${color}" opacity="0.7"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+      <circle cx="${center}" cy="${center}" r="${radius}" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <circle cx="${center}" cy="${center}" r="${innerRadius}" fill="${color}" opacity="0.7"/>
     </svg>`;
 
   return L.divIcon({
     html: svg,
     className: "light-marker-fixed",
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-    popupAnchor: [0, -8],
+    iconSize: [size, size],
+    iconAnchor: [center, center],
+    popupAnchor: [0, -center],
   });
 };
 
@@ -127,17 +137,17 @@ const ControlPanel = ({
           minWidth: "200px",
         }}
       >
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            color: "white",
-            cursor: "pointer",
-            userSelect: "none",
-          }}
-        >
-          Markers
+         <label
+           style={{
+             display: "flex",
+             alignItems: "center",
+             justifyContent: "space-between",
+             color: "white",
+             cursor: "pointer",
+             userSelect: "none",
+           }}
+         >
+           Markers (Zoom ≥ 17)
           <div
             style={{
               width: "40px",
@@ -165,17 +175,17 @@ const ControlPanel = ({
           </div>
         </label>
 
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            color: "white",
-            cursor: "pointer",
-            userSelect: "none",
-          }}
-        >
-          Street Lines
+         <label
+           style={{
+             display: "flex",
+             alignItems: "center",
+             justifyContent: "space-between",
+             color: "white",
+             cursor: "pointer",
+             userSelect: "none",
+           }}
+         >
+           Street Lines (Zoom ≤ 16)
           <div
             style={{
               width: "40px",
@@ -207,6 +217,27 @@ const ControlPanel = ({
   );
 };
 
+// Component to track zoom level
+const ZoomTracker = ({ onZoomChange }: { onZoomChange: (zoom: number) => void }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const handleZoomEnd = () => {
+      onZoomChange(map.getZoom());
+    };
+
+    // Set initial zoom
+    onZoomChange(map.getZoom());
+
+    map.on('zoomend', handleZoomEnd);
+    return () => {
+      map.off('zoomend', handleZoomEnd);
+    };
+  }, [map, onZoomChange]);
+
+  return null; // This component doesn't render anything
+};
+
 function MapVisualization({ height, width }: MapVisualizationProps) {
   const [points, setPoints] = useState<PointData[]>([]);
   const [streetNames, setStreetNames] = useState<string[]>([]);
@@ -214,6 +245,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
   const [showPolylines, setShowPolylines] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(13); // Default zoom level
 
   // CSS for markers
   useEffect(() => {
@@ -238,6 +270,12 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
       document.head.removeChild(style);
     };
   }, []);
+
+  // Handle zoom change for visibility logic
+  const handleZoomChange = (newZoom: number) => {
+    setZoom(newZoom);
+    console.log(`Zoom level: ${newZoom}`);
+  };
 
   // Load points data from API
   useEffect(() => {
@@ -430,20 +468,24 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
         zIndex: 1,
         marginLeft: "0",
       }}>
-        <LeafletMap height="100%" width="100%">
-          {showPolylines &&
-            streetNames.map((streetName) => (
-              <React.Fragment key={streetName}>
-                {renderStreetLines(streetName)}
-              </React.Fragment>
-            ))}
+         <LeafletMap height="100%" width="100%">
+           <ZoomTracker onZoomChange={handleZoomChange} />
+           
+           {/* Show polylines when zoom <= 16 (zoomed out - overview) */}
+           {showPolylines && zoom <= 16 &&
+             streetNames.map((streetName) => (
+               <React.Fragment key={streetName}>
+                 {renderStreetLines(streetName)}
+               </React.Fragment>
+             ))}
 
-          {showMarkers &&
+          {/* Show markers when zoom >= 17 (zoomed in - detailed view) */}
+          {showMarkers && zoom >= 17 &&
             points.map((pt) => (
               <Marker
                 key={pt.id}
                 position={[pt.lat, pt.lon]}
-                icon={createLightIcon(pt.lux)}
+                icon={createLightIcon(pt.lux, zoom)}
               >
                 <Tooltip
                   direction="top"
