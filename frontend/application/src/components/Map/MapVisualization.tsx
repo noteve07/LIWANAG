@@ -3,7 +3,9 @@ import LeafletMap from "./LeafletMap";
 import type { MapVisualizationProps } from "./types/mapTypes";
 import { useIlluminationData } from "../../contexts/IlluminationDataContext";
 import { useZoomTracking } from "./hooks/useZoomTracking";
+import { useViewportBounds } from "./hooks/useViewportBounds";
 import { ZoomTracker } from "./components/ZoomTracker";
+import { ViewportTracker } from "./components/ViewportTracker";
 import { MapControls } from "./components/MapControls";
 import { MapMarkers } from "./components/MapMarkers";
 import { MapPolylines } from "./components/MapPolylines";
@@ -15,6 +17,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
   // Custom hooks
   const { points, streetNames, loading, error } = useIlluminationData();
   const { zoom, handleZoomChange } = useZoomTracking();
+  const { bounds, updateBounds, isPointInViewport } = useViewportBounds();
   
   // Local state
   const [showMarkers, setShowMarkers] = useState(true);
@@ -139,6 +142,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
       }}>
         <LeafletMap height="100%" width="100%">
            <ZoomTracker onZoomChange={handleZoomChange} />
+           <ViewportTracker onBoundsChange={updateBounds} />
            
            <MapPolylines 
              streetNames={streetNames}
@@ -151,6 +155,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
              points={points}
              showMarkers={showMarkers}
              zoom={zoom}
+             isPointInViewport={isPointInViewport}
            />
         </LeafletMap>
       </div>
