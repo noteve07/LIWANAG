@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import LeafletMap from "./LeafletMap";
 import type { MapVisualizationProps } from "./types/mapTypes";
-import { useIlluminationData } from "./hooks/useIlluminationData";
+import { useIlluminationData } from "../../contexts/IlluminationDataContext";
 import { useZoomTracking } from "./hooks/useZoomTracking";
 import { ZoomTracker } from "./components/ZoomTracker";
 import { MapControls } from "./components/MapControls";
