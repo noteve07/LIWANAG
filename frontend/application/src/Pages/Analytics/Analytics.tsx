@@ -233,8 +233,9 @@ function Analytics() {
           
           {/* List view */}
           {viewMode === 'list' && (
-            <div className="overflow-x-auto bg-gray-800 rounded-lg border border-gray-700">
-              <table className="min-w-full divide-y divide-gray-700">
+            <div className="overflow-x-auto overflow-y-auto max-h-[70vh] bg-gray-800 rounded-lg border border-gray-700
+            scrollbar">
+              <table className="min-w-full divide-y divide-gray-700 ">
                 <thead>
                   <tr>
                     <th 
