@@ -70,21 +70,22 @@ function Dashboard() {
   };
 
   return (
-    <div className="h-full flex flex-col px-8 py-2">
-      <h1 className="text-3xl font-bold text-white mb-6">Lighting Dashboard</h1>
+  <div className="h-full flex flex-col px-8 py-2">
+  <h1 className="text-3xl font-bold text-white mb-6">Lighting Dashboard</h1>
       
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 flex-1 content-start">
-          {/* Top row metrics */}
-          
-
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
+  <div
+    className="grid grid-cols-6 gap-4 items-start"
+    style={{ gridTemplateRows: 'repeat(8, auto)' }}
+  >
+          {/* Card 1: Last Updated (spans 2 cols, 2 rows, top left) */}
+          <div className="col-start-1 col-span-2 row-start-1 row-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-md flex flex-col justify-between min-h-[120px] h-full relative">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
-              Last Updated
+                Last Updated
               <span className="ml-2">
                 {/* Clock Icon */}
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#a78bfa" className="w-5 h-5">
@@ -98,9 +99,10 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
+          {/* Card 2: Total KM Surveyed (col 3, rows 1-2) */}
+          <div className="col-start-3 col-span-1 row-start-1 row-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-md flex flex-col justify-between min-h-[120px] h-full relative">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
-              Total KM Surveyed
+                Total KM Surveyed
               <span className="ml-2">
                 {/* Map Icon */}
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#38bdf8" className="w-5 h-5">
@@ -117,9 +119,10 @@ function Dashboard() {
             </p>
           </div>
           
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
+          {/* Card 3: Sensor Points Gathered (col 4, rows 1-2) */}
+          <div className="col-start-4 col-span-1 row-start-1 row-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-md flex flex-col justify-between min-h-[120px] relative">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
-              Sensor Points Gathered
+                Sensor Points Gathered
               <span className="ml-2">
                 {/* Chip Icon */}
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#f59e0b" className="w-5 h-5">
@@ -136,7 +139,8 @@ function Dashboard() {
           </div>
           
           {/* Middle row - charts */}
-          <div className="md:col-span-4">
+          {/* Card 4: Lighting Improvement Over Time (cols 1-4, rows 3-6) */}
+          <div className="col-start-1 col-span-4 row-start-3 row-span-4 bg-gray-800 p-0 pt-4 pb-6 rounded-xl border border-gray-700 shadow-md flex flex-col justify-between min-h-[240px] relative">
             <Card className="py-4 sm:py-0 relative">
               <span className="absolute top-4 right-6">
                 {/* Chart Line Icon */}
@@ -174,7 +178,7 @@ function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent className="px-2 sm:p-6">
-                <div className="bg-gray-900 p-4 rounded h-[250px] w-full">
+                  <div className="bg-gray-900 p-2 rounded h-[170px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                       data={chartData}
@@ -238,7 +242,8 @@ function Dashboard() {
             </Card>
           </div>
           
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
+          {/* Card 5: Well-Lit vs Poorly Lit Areas (cols 5-6, rows 1-4) */}
+          <div className="col-start-5 col-span-2 row-start-1 row-span-4 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-md flex flex-col justify-between min-h-[320px] relative">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
               Well-Lit vs Poorly Lit Areas
               <span className="ml-2">
@@ -295,7 +300,8 @@ function Dashboard() {
           </div>
           
           {/* Bottom row */}
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
+          {/* Card 6: Top 5 Priority Streets (cols 1-3, rows 7-8) */}
+          <div className="col-start-1 col-span-2 row-start-7 row-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-md flex flex-col justify-between min-h-[140px] relative">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
               Top 5 Priority Streets
               <span className="ml-2">
@@ -322,7 +328,8 @@ function Dashboard() {
             </ul>
           </div>
           
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
+          {/* Card 7: Top 5 Priority Barangay (cols 3-4, rows 7-8) */}
+          <div className="col-start-3 col-span-2 row-start-7 row-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-md flex flex-col justify-between min-h-[140px] relative">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
               Top 5 Priority Barangay
               <span className="ml-2">
@@ -349,8 +356,9 @@ function Dashboard() {
             </ul>
           </div>
           
+          {/* Card 8: Barangay Last Update (cols 5-6, rows 5-8) */}
           {barangaysNoUpdate.length > 0 && (
-            <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 max-h-58 overflow-y-auto scrollbar relative">
+            <div className="col-start-5 col-span-2 row-start-5 row-span-4 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-md flex flex-col justify-between min-h-[320px] max-h-105 overflow-y-auto scrollbar relative">
               <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
                 Barangay Last Update
                 <span className="ml-2">
