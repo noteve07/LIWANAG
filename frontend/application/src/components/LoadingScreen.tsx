@@ -1,6 +1,97 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import LeafletMap from './Map/LeafletMap';
 
-const LoadingScreen: React.FC = () => {
+interface LoadingScreenProps {
+  showMap?: boolean;
+  message?: string;
+}
+
+const LoadingScreen: React.FC<LoadingScreenProps> = ({ 
+  showMap = false, 
+  message = "Loading illumination data..." 
+}) => {
+  const [showAlert, setShowAlert] = useState(showMap);
+
+  useEffect(() => {
+    if (showMap) {
+      // Show alert for 5 seconds when map is displayed
+      const timer = setTimeout(() => {
+        setShowAlert(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showMap]);
+
+  if (showMap) {
+    return (
+      <div className="relative w-full h-full">
+        {/* Map Display */}
+        <div className="w-full h-full">
+          <LeafletMap height="100vh" width="100%">
+            {/* Empty map - no markers or data */}
+          </LeafletMap>
+        </div>
+
+        {/* Bottom Center Alert Popup */}
+        {showAlert && (
+          <div 
+            className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 max-w-md mx-auto"
+            style={{
+              animation: 'slideInUp 0.4s ease-out',
+            }}
+          >
+            <div className="bg-orange-500/10 backdrop-blur-md text-white px-4 py-3 rounded-xl shadow-lg border border-orange-400/20 flex items-center space-x-3">
+              {/* Info Icon */}
+              <div className="flex-shrink-0">
+                <svg 
+                  className="w-5 h-5 text-orange-200" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              
+              {/* Alert Content */}
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white/90">
+                  {message || "No illumination data available"}
+                </p>
+              </div>
+              
+              {/* Close Button */}
+              <button 
+                onClick={() => setShowAlert(false)}
+                className="flex-shrink-0 text-white/60 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CSS Animations */}
+        <style>{`
+          @keyframes slideInUp {
+            0% { 
+              transform: translate(-50%, 100%);
+              opacity: 0;
+            }
+            100% { 
+              transform: translate(-50%, 0);
+              opacity: 1;
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // Original loading screen for actual loading states
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-[#0D1117] to-[#1C2834] flex flex-col items-center justify-center z-50">
       {/* Background Pattern */}
@@ -76,6 +167,13 @@ const LoadingScreen: React.FC = () => {
             }}
           >
             Navigation for Analytics & Governance
+          </p>
+        </div>
+        
+        {/* Loading Message */}
+        <div className="text-center">
+          <p className="text-amber-200/70 text-sm">
+            {message}
           </p>
         </div>
         
