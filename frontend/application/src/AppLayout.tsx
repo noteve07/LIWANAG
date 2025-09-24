@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Lightbulb, Server, BarChart3, Bot, Bell, Mail, User, Search } from 'lucide-react';
+import { LayoutDashboard, Lightbulb, Server, BarChart3, Bot, Bell, Mail, User, } from 'lucide-react';
 
 function Header() {
   return (
@@ -8,20 +8,9 @@ function Header() {
         {/* Left - Official Branding */}
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-3">
-            <img 
-              src="/src/assets/logo/bpsu_logo.png" 
-              alt="BPSU Logo" 
-              className="h-8 w-8 object-contain"
-            />
             <div className="h-8 w-px bg-slate-600"></div>
-            <img 
-              src="/src/assets/logo/balanga_seal.png" 
-              alt="Balanga City Seal" 
-              className="h-8 w-8 object-contain"
-            />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">City Government of Balanga</span>
                     <span className="text-sm text-gray-300 font-medium">Lighting Intelligence with Automated Navigation for Analytics and Governance</span>
           </div>
         </div>
