@@ -1,3 +1,40 @@
+// Utility to get relative time (e.g., '3 days ago')
+function getRelativeTime(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return '1 day ago';
+  return `${diffDays} days ago`;
+}
+
+// Returns barangays with no update for >= 1 day
+export function getBarangaysWithNoUpdate(sensorData: SensorData[]) {
+  // Group by barangay and get latest timestamp for each
+  const barangayLatest: Record<string, string> = {};
+  sensorData.forEach(sensor => {
+    if (!sensor.barangay) return;
+    const ts = sensor.timestamp;
+    if (!barangayLatest[sensor.barangay] || new Date(ts) > new Date(barangayLatest[sensor.barangay])) {
+      barangayLatest[sensor.barangay] = ts;
+    }
+  });
+  const now = new Date();
+  // Only include barangays where last update is >= 1 day ago
+  return Object.entries(barangayLatest)
+    .filter(([_, ts]) => {
+      const diffMs = now.getTime() - new Date(ts).getTime();
+      return diffMs >= 1000 * 60 * 60 * 24;
+    })
+    .map(([barangay, ts]) => ({
+      barangay,
+      lastUpdate: new Date(ts),
+      lastUpdateString: new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+      relative: getRelativeTime(ts),
+    }))
+    .sort((a, b) => b.lastUpdate.getTime() - a.lastUpdate.getTime());
+}
 import type { SensorData } from '../types/sensor';
 import { sampleApiResponse } from './sampleData';
 import { WELL_LIT_THRESHOLD } from '../constants/metrics';

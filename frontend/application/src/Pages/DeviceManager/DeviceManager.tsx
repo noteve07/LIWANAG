@@ -173,6 +173,7 @@ const DeviceManager: React.FC = () => {
                 </span>
               </div>
             </div> 
+            
 
             {/* Battery Level */}
             <div className="flex mt-1 justify-center space-x-2">
