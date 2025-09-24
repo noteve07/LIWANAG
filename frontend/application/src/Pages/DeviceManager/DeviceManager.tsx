@@ -124,9 +124,9 @@ const DeviceManager: React.FC = () => {
     
     return (
       <Card className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-all duration-300 hover:shadow-lg overflow-hidden">
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           {/* ESP32 Logo - Priority */}
-          <div className="flex items-center justify-center mb-4">
+          <div className="flex items-center justify-center p-2">
             <div className="relative">
               <img 
                 src="./src/assets/logo/esp32.png" 
@@ -156,31 +156,34 @@ const DeviceManager: React.FC = () => {
           </div>
 
           {/* Device Name and Status */}
-          <div className="text-center mb-4">
-            <h3 className="text-lg font-semibold text-white mb-2">{device.name}</h3>
-            <div className="flex items-center justify-center space-x-2">
-              {isOnline ? (
-                <Wifi size={16} className="text-green-400" />
-              ) : (
-                <WifiOff size={16} className="text-red-400" />
-              )}
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(device.status)} text-white`}>
-                {device.status}
-              </span>
-            </div>
+          <div className="flex flex-col items-center">
+              <h3 className="text-lg font-semibold text-white mb-2">{device.name}</h3>
           </div>
+          
+          <div className="grid gap-4 grid-cols-2">
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-2">
+                {isOnline ? (
+                  <Wifi size={16} className="text-green-400" />
+                ) : (
+                  <WifiOff size={16} className="text-red-400" />
+                )}
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(device.status)} text-white`}>
+                  {device.status}
+                </span>
+              </div>
+            </div> 
+            
 
-          {/* Device Metrics */}
-          <div className="space-y-3 mb-4">
             {/* Battery Level */}
-            <div className="flex items-center justify-center space-x-2">
+            <div className="flex mt-1 justify-center space-x-2">
               <Battery size={16} className={`${device.battery_level <= 20 ? 'text-red-400' : device.battery_level <= 50 ? 'text-yellow-400' : 'text-green-400'}`} />
               <span className="text-sm font-medium text-white">{device.battery_level}%</span>
             </div>
 
             {/* Last Seen */}
             <div className="text-center">
-              <div className="flex items-center justify-center space-x-1 mb-1">
+              <div className="flex items-center justify-center space-x-1">
                 <Activity size={14} className="text-blue-400" />
                 <span className="text-xs text-gray-300">Last Seen</span>
               </div>
@@ -191,7 +194,7 @@ const DeviceManager: React.FC = () => {
 
             {/* Data Points */}
             <div className="text-center">
-              <div className="flex items-center justify-center space-x-1 mb-1">
+              <div className="flex items-center justify-center space-x-1">
                 <div className="w-3 h-3 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full"></div>
                 <span className="text-xs text-gray-300">Data Points</span>
               </div>
@@ -199,13 +202,14 @@ const DeviceManager: React.FC = () => {
                 {device.data_points_collected.toLocaleString()}
               </span>
             </div>
+
           </div>
 
           {/* Action Button */}
           <button
             onClick={() => canMission ? handleStartMission(device) : undefined}
             disabled={!canMission}
-            className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+            className={`w-full py-3 px-4 mt-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
               canMission
                 ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-gray-900 hover:shadow-lg'
                 : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-50'
