@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import LeafletMap from "./LeafletMap";
 import type { MapVisualizationProps } from "./types/mapTypes";
-import { useIlluminationData } from "./hooks/useIlluminationData";
+import { useIlluminationData } from "../../contexts/IlluminationDataContext";
 import { useZoomTracking } from "./hooks/useZoomTracking";
+import { useViewportBounds } from "./hooks/useViewportBounds";
 import { ZoomTracker } from "./components/ZoomTracker";
+import { ViewportTracker } from "./components/ViewportTracker";
 import { MapControls } from "./components/MapControls";
 import { MapMarkers } from "./components/MapMarkers";
 import { MapPolylines } from "./components/MapPolylines";
+import LoadingScreen from "../LoadingScreen";
 
 
 
@@ -14,6 +17,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
   // Custom hooks
   const { points, streetNames, loading, error } = useIlluminationData();
   const { zoom, handleZoomChange } = useZoomTracking();
+  const { bounds, updateBounds, isPointInViewport } = useViewportBounds();
   
   // Local state
   const [showMarkers, setShowMarkers] = useState(true);
@@ -93,29 +97,23 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
     );
   }
 
-  // Show error state
+  // Show error state - display map with alert popup instead of error message
   if (error) {
-        return (
-      <div
-        style={{
-          position: "relative",
-          height: height || "500px",
-          width: width || "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#fee",
-          color: "#c33",
-          fontSize: "16px",
-          padding: "20px",
-          textAlign: "center",
-        }}
-      >
-        <div>
-          <div>Failed to load illumination data</div>
-          <div style={{ fontSize: "14px", marginTop: "8px" }}>{error}</div>
-        </div>
-      </div>
+    return (
+      <LoadingScreen 
+        showMap={true}
+        message="Illumination data is currently unavailable. Showing base map view."
+      />
+    );
+  }
+
+  // Show map with alert if no data is available (but no error)
+  if (!loading && (!points || points.length === 0)) {
+    return (
+      <LoadingScreen 
+        showMap={true}
+        message="No illumination data found. Install sensors to start collecting data."
+      />
     );
   }
 
@@ -144,6 +142,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
       }}>
         <LeafletMap height="100%" width="100%">
            <ZoomTracker onZoomChange={handleZoomChange} />
+           <ViewportTracker onBoundsChange={updateBounds} />
            
            <MapPolylines 
              streetNames={streetNames}
@@ -156,6 +155,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
              points={points}
              showMarkers={showMarkers}
              zoom={zoom}
+             isPointInViewport={isPointInViewport}
            />
         </LeafletMap>
       </div>

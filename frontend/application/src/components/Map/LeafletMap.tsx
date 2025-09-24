@@ -304,7 +304,7 @@ function LeafletMap({
           center={balangaCenter}
           zoom={15}
           minZoom={14}
-          maxZoom={18}
+          maxZoom={19}
           maxBounds={[
             [14.600155704670286, 120.44799628423448],
             [14.712450787098618, 120.59856467222914],
@@ -320,6 +320,8 @@ function LeafletMap({
               themes[currentTheme as keyof typeof themes].attribution
             }
             url={themes[currentTheme as keyof typeof themes].url}
+            maxZoom={19}
+            maxNativeZoom={18}
             className={
               currentTheme === "satellite" 
                 ? "night-satellite-base" 
@@ -335,6 +337,8 @@ function LeafletMap({
             <TileLayer
               attribution=""
               url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
+              maxZoom={19}
+              maxNativeZoom={18}
               className="night-dark-overlay"
             />
           )}

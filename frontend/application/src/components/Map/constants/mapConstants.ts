@@ -1,6 +1,6 @@
 export const ZOOM_THRESHOLDS = {
   POLYLINES_MAX: 16,
-  MARKERS_MIN: 17,
+  MARKERS_MIN: 19,
 } as const;
 
 export const MAP_CONFIG = {

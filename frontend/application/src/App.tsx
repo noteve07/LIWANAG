@@ -21,6 +21,7 @@ import RootLayout from './RouteLayout/RootLayout';
 import AnalyticsLayout from './RouteLayout/AnalyticsLayout';
 import Error404 from './Pages/Error404';
 import LoadingScreen from './components/LoadingScreen';
+import { IlluminationDataProvider } from './contexts/IlluminationDataContext';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -57,7 +58,11 @@ function App() {
     return <LoadingScreen />;
   }
 
-  return <RouterProvider router={router} />;
+  return (
+    <IlluminationDataProvider>
+      <RouterProvider router={router} />
+    </IlluminationDataProvider>
+  );
 }
 
 export default App;
