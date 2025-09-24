@@ -6,18 +6,11 @@ function Header() {
   <header className="bg-[#151E2A]/95 backdrop-blur-sm text-white px-6 py-3 shadow-2xl border-b border-slate-700/50">
       <div className="w-full flex justify-between items-center">
         {/* Left - Official Branding */}
-<<<<<<< Updated upstream
-        <div className="flex items-center space-x-4">
-          <div className="flex flex-col">
-            <span className="text-sm text-gray-300 font-medium">Lighting Intelligence with Automated Navigation for Analytics and Governance</span>
-          </div>
-=======
  <div className="flex items-center space-x-3">
             <div className="h-8 w-px bg-slate-600"></div>
           </div>
           <div className="flex flex-col">
               <span className="text-sm text-gray-300 font-medium">Lighting Intelligence with Automated Navigation for Analytics and Governance</span>
->>>>>>> Stashed changes
         </div>
         
         {/* Right - User Actions */}
