@@ -73,7 +73,7 @@ function Luxor() {
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-[#0D1117] to-[#151B23]">
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8">
+      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 scrollbar">
         {/* Welcome Screen - shown when no messages */}
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full space-y-6 text-center">

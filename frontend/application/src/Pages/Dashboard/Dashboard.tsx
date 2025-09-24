@@ -76,22 +76,11 @@ function Dashboard() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 content-start">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 flex-1 content-start">
           {/* Top row metrics */}
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md">
-            <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">% of Well-Lit Areas</h3>
-            <div className="flex items-baseline">
-              <span className="text-4xl font-bold text-amber-400">{dashboardData.wellLitPercentage}%</span>
-            </div>
-            <div className="mt-2 h-2 bg-gray-700 rounded-full">
-              <div 
-                className="bg-amber-500 h-2 rounded-full" 
-                style={{ width: `${dashboardData.wellLitPercentage}%` }}
-              ></div>
-            </div>
-          </div>
           
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md">
+
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-3">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">Total KM Surveyed</h3>
             <div className="flex items-baseline">
               <span className="text-4xl font-bold text-white">{dashboardData.totalKilometersSurveyed}</span>
@@ -102,7 +91,7 @@ function Dashboard() {
             </p>
           </div>
           
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md">
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-3">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">Sensor Points Gathered</h3>
             <div className="flex items-baseline">
               <span className="text-4xl font-bold text-white">{dashboardData.sensorPointsGathered}</span>
@@ -113,7 +102,7 @@ function Dashboard() {
           </div>
           
           {/* Middle row - charts */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-4">
             <Card className="py-4 sm:py-0">
               <CardHeader className="flex flex-col items-stretch border-b border-gray-700 !p-0 sm:flex-row">
                 <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
@@ -209,7 +198,7 @@ function Dashboard() {
             </Card>
           </div>
           
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md">
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">Well-Lit vs Poorly Lit Areas</h3>
             <div className="mt-4 flex justify-center">
               {/* Donut chart would go here, using placeholder for now */}
@@ -261,7 +250,7 @@ function Dashboard() {
           </div>
           
           {/* Bottom row */}
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md">
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">Top 5 Priority Streets</h3>
             <ul className="mt-4 space-y-3">
               {dashboardData.topPriorityStreets.map((street, index) => (
@@ -280,7 +269,7 @@ function Dashboard() {
             </ul>
           </div>
           
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md">
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">Top 5 Priority Barangay</h3>
             <ul className="mt-4 space-y-3">
               {dashboardData.topPriorityBarangays.map((barangay, index) => (
@@ -299,7 +288,7 @@ function Dashboard() {
             </ul>
           </div>
           
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md">
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">Last Updated</h3>
             <div className="mt-2">
               <div className="text-lg text-white">{lastUpdated}</div>
