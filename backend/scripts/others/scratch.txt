@@ -1,0 +1,54 @@
+yep and others are just unsurveyed
+
+so basically i think 
+
+in barangay_analytics
+
+we need to have
+
+BARANGAY_ANALYTICS Table 
+barangay_id (foreign key to our barangays table, parang extension)
+meters_surveyed
+meters_unsurveyed
+data_points
+avg_lux (also can be calculated by barangay_id from illumination_data)
+classification (critical, low, standard, high: derived from avg lux)
+
+so on that note i need to add total_meters on my barangays table, calculated from the street_segments
+
+
+STREET_ANALYTICS
+street_id
+meters_surveyed
+meters_unsurveyed
+data_points
+avg_lux (can be calculated from the illumination_data)
+classification
+
+and so i also have to update the illumination_data table to add the classification table
+
+
+then i combine all for the dashboard (balanga)
+
+BALANGA_ANALYTICS (derived from illumination_data)
+id (just for primary key)
+timestamp (updates daily)
+avg_lux
+critical
+low
+standard
+high (quantity)
+well-lit
+poor-lit
+
+
+
+
+avg_lux
+
+
+Classification (i think i also need to add this to database in case of configuration or adjustments)
+[23-30] high
+[15-23] standard
+[5-15] low
+[0-5] critical

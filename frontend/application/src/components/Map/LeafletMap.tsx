@@ -328,7 +328,7 @@ function LeafletMap({
                 : currentTheme === "default"
                 ? "default-theme-dark"
                 : ""
-            }
+            } 
           />
 
 
