@@ -3,13 +3,21 @@
 # - /device-online
 # - /device-offline
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException
 
 from app.core.database import supabase
 from app.models.sensor_data import SensorData, SensorDemo
 from app.models.sensor_device import DeviceOfflinePayload, SensorDevice, DeviceOnlinePayload, DeviceStatus
 from pydantic import BaseModel
+from shapely.geometry import Point
+
+from app.services.geospatial import (
+    classify_lux,
+    degrees_to_meters,
+    determine_barangay,
+    determine_nearest_street,
+)
 
 router = APIRouter()
 
@@ -41,12 +49,60 @@ async def receive_sensor_data(data: SensorData):
     try: 
         print(f"RECEIVED DATA: {data}")
 
-        # prepare the data for supabase insertion
-        record = data.model_dump()
-        record["timestamp"] = record["timestamp"].isoformat()
-        record["uploaded_at"] = datetime.now().isoformat()
+        point = Point(data.lon, data.lat)
 
-        # insert into supabase
+        barangay_record = determine_barangay(point)
+        street_info = determine_nearest_street(point)
+
+        barangay_id = barangay_record.get("id") if barangay_record else None
+        barangay_name = barangay_record.get("name") if barangay_record else None
+
+        street_record = street_info[0] if street_info else None
+        street_distance = street_info[1] if street_info else None
+        street_id = street_record.get("id") if street_record else None
+        street_name = street_record.get("name") if street_record else None
+        road_category = (street_record or {}).get("road_category") or "residential"
+
+        classification = classify_lux(road_category, data.lux)
+
+        print(
+            "Resolved Barangay:",
+            f"{barangay_name or 'Unknown'} (ID: {barangay_id or 'N/A'})",
+        )
+
+        if street_record and street_distance is not None:
+            approx_distance = degrees_to_meters(street_distance, data.lat)
+            print(
+                "Resolved Street:",
+                f"{street_name or '<unnamed>'} (ID: {street_id})",
+                f"~{approx_distance:.2f} m away",
+            )
+        else:
+            print("Resolved Street: None found")
+
+        print(f"Road Category: {road_category}")
+        print(f"Lux Classification: {classification}")
+
+        timestamp = data.timestamp
+        if timestamp.tzinfo is not None:
+            timestamp = timestamp.replace(tzinfo=None)
+
+        timestamp_iso = timestamp.isoformat()
+        uploaded_at_iso = datetime.now().isoformat()
+
+        record = {
+            "lat": data.lat,
+            "lon": data.lon,
+            "lux": int(data.lux),
+            "sensor_name": data.sensor_name,
+            "timestamp": timestamp_iso,
+            "uploaded_at": uploaded_at_iso,
+            "barangay_id": barangay_id,
+            "street_id": street_id,
+            "road_category": road_category,
+            "classification": classification,
+        }
+
         response = supabase.table("sensor_data").insert(record).execute()
 
         # check if insert was successful
