@@ -22,6 +22,8 @@ import AnalyticsLayout from './RouteLayout/AnalyticsLayout';
 import Error404 from './Pages/Error404';
 import LoadingScreen from './components/LoadingScreen';
 import { IlluminationDataProvider } from './contexts/IlluminationDataContext';
+import LandingPage from './Pages/Landing/LandingPage';
+import LoginPage from './Pages/Auth/LoginPage';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -37,19 +39,24 @@ function App() {
 
   const router = createBrowserRouter(
     createRoutesFromElements(
-      <Route path='/' element={<RootLayout />}>
-        <Route index element={<Dashboard />} />
-        <Route path='dashboard' element={<Dashboard />} />
-        <Route path='deviceManager' element={<DeviceManager />} />
-        <Route path='analytics' element={<AnalyticsLayout />}>
-          <Route index element={<Analytics />} />
-          <Route path=':barangayName' element={<BarangayDetails />} />
+      <>
+        <Route path='/' element={<LandingPage />} />
+        <Route path='/login' element={<LoginPage />} />
+        <Route path='/app' element={<RootLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path='dashboard' element={<Dashboard />} />
+          <Route path='deviceManager' element={<DeviceManager />} />
+          <Route path='analytics' element={<AnalyticsLayout />}>
+            <Route index element={<Analytics />} />
+            <Route path=':barangayName' element={<BarangayDetails />} />
+          </Route>
+          <Route path='luxor' element={<Luxor />} />
+          <Route path='streetIllumination' element={<StreetIllumination />} /> 
+          <Route path='error' element={<Error404 />} /> 
+          <Route path='*' element={<Error404 />} /> 
         </Route>
-        <Route path='luxor' element={<Luxor />} />
-        <Route path='streetIllumination' element={<StreetIllumination />} /> 
-        <Route path='error' element={<Error404 />} /> 
-        <Route path='*' element={<Error404 />} /> 
-      </Route>
+        <Route path='*' element={<Error404 />} />
+      </>
     )
   )
 

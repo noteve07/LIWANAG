@@ -317,7 +317,7 @@ function Analytics() {
                       <tr 
                         key={name} 
                         className={`hover:bg-gray-700/50 cursor-pointer ${index % 2 === 0 ? 'bg-gray-800' : 'bg-gray-800/50'}`}
-                        onClick={() => navigate(`/analytics/${encodeURIComponent(name)}`)}
+                        onClick={() => navigate(`/app/analytics/${encodeURIComponent(name)}`)}
                       >
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="text-sm font-medium text-white">{name}</div>
@@ -390,7 +390,7 @@ function Analytics() {
                   key={name}
                   name={name}
                   data={barangayGroups[name]}
-                  onClick={() => navigate(`/analytics/${encodeURIComponent(name)}`)}
+                  onClick={() => navigate(`/app/analytics/${encodeURIComponent(name)}`)}
                 />
               ))}
             </div>

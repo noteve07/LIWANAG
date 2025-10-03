@@ -33,7 +33,7 @@ function StreetIllumination() {
             </div>
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => navigate('/luxor')}
+                onClick={() => navigate('/app/luxor')}
                 className="hover:bg-black/10 rounded-full p-1.5 transition-colors"
                 title="Go to full chat"
               >
