@@ -24,6 +24,22 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
   // Local state
   const [showMarkers, setShowMarkers] = useState(true);
   const [showPolylines, setShowPolylines] = useState(true);
+  const [selectedStreet, setSelectedStreet] = useState<{
+    id: number;
+    name: string;
+    type: 'surveyed' | 'unsurveyed' | 'partial';
+    averageLux?: number;
+  } | null>(null);
+
+  // Handle street selection
+  const handleStreetClick = (streetId: number, streetName: string, type: 'surveyed' | 'unsurveyed' | 'partial', averageLux?: number) => {
+    setSelectedStreet({
+      id: streetId,
+      name: streetName,
+      type,
+      averageLux
+    });
+  };
 
   // CSS for markers
   useEffect(() => {
@@ -42,6 +58,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
         filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         transition: filter 0.2s;
       }
+      
     `;
     document.head.appendChild(style);
     return () => {
@@ -149,17 +166,23 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
            <UnsurveyedStreets 
              points={points}
              showPolylines={showPolylines}
+             selectedStreetId={selectedStreet?.id}
+             onStreetClick={handleStreetClick}
            />
            
            <PartiallyUnsurveyedStreets 
              points={points}
              showPolylines={showPolylines}
+             selectedStreetId={selectedStreet?.id}
+             onStreetClick={handleStreetClick}
            />
            
            <MapPolylines 
              streetNames={streetNames}
              showPolylines={showPolylines}
              points={points}
+             selectedStreetId={selectedStreet?.id}
+             onStreetClick={handleStreetClick}
            />
            
            <MapMarkers 
@@ -169,6 +192,71 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
              isPointInViewport={isPointInViewport}
            />
         </LeafletMap>
+        
+        {/* Street Details Overlay */}
+        {selectedStreet && (
+          <div
+            style={{
+              position: "absolute",
+              top: "20px",
+              left: "20px",
+              zIndex: 1000,
+              background: "rgba(17, 25, 38, 0.95)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              borderRadius: "8px",
+              padding: "16px",
+              minWidth: "250px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+              color: "white",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600" }}>Street Details</h3>
+              <button
+                onClick={() => setSelectedStreet(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#9ca3af",
+                  cursor: "pointer",
+                  fontSize: "18px",
+                  padding: "0",
+                  width: "24px",
+                  height: "24px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={{ fontSize: "14px", lineHeight: "1.5" }}>
+              <div style={{ marginBottom: "8px" }}>
+                <strong>Name:</strong> {selectedStreet.name}
+              </div>
+              <div style={{ marginBottom: "8px" }}>
+                <strong>Status:</strong>{" "}
+                <span style={{
+                  color: selectedStreet.type === 'surveyed' ? '#10b981' : 
+                        selectedStreet.type === 'partial' ? '#f59e0b' : '#6b7280'
+                }}>
+                  {selectedStreet.type === 'surveyed' ? 'Fully Surveyed' :
+                   selectedStreet.type === 'partial' ? 'Partially Surveyed' : 'Unsurveyed'}
+                </span>
+              </div>
+              {selectedStreet.averageLux && (
+                <div style={{ marginBottom: "8px" }}>
+                  <strong>Average Lux:</strong> {selectedStreet.averageLux.toFixed(1)} lx
+                </div>
+              )}
+              <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "12px" }}>
+                Click another street to view its details
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ import type { PointData } from "../types/mapTypes";
 interface UnsurveyedStreetsProps {
   points: PointData[];
   showPolylines: boolean;
+  selectedStreetId?: number;
+  onStreetClick: (streetId: number, streetName: string, type: 'unsurveyed') => void;
 }
 
 interface StreetFeature {
@@ -27,7 +29,7 @@ interface StreetsGeoJSON {
   features: StreetFeature[];
 }
 
-export const UnsurveyedStreets = ({ points, showPolylines }: UnsurveyedStreetsProps) => {
+export const UnsurveyedStreets = ({ points, showPolylines, selectedStreetId, onStreetClick }: UnsurveyedStreetsProps) => {
   const [streetsData, setStreetsData] = useState<StreetsGeoJSON | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,20 +64,38 @@ export const UnsurveyedStreets = ({ points, showPolylines }: UnsurveyedStreetsPr
   // Convert MultiLineString coordinates to Leaflet polyline format
   const renderUnsurveyedStreet = (street: StreetFeature) => {
     const polylines: JSX.Element[] = [];
+    const isSelected = selectedStreetId === street.properties.id;
     
     street.geometry.coordinates.forEach((lineString, lineIndex) => {
       // Convert coordinates from [lon, lat] to [lat, lon] for Leaflet
       const positions = lineString.map(coord => [coord[1], coord[0]] as [number, number]);
       
+      // Add dashed border for selected street
+      if (isSelected) {
+        polylines.push(
+          <Polyline
+            key={`unsurveyed-border-${street.properties.id}-${lineIndex}`}
+            positions={positions}
+            color="#6b7280" // Gray border for unsurveyed streets (no lux data)
+            weight={6}      // Thicker for border
+            opacity={0.8}   // Semi-transparent
+            dashArray="10, 5" // Dashed pattern for border effect
+            smoothFactor={1.0}
+          />
+        );
+      }
+      
       polylines.push(
         <Polyline
           key={`unsurveyed-${street.properties.id}-${lineIndex}`}
           positions={positions}
-          color="#353f52" // 🎨 CHANGE COLOR HERE: Gray color for unsurveyed streets
-          weight={2}       // 📏 CHANGE LINE THICKNESS HERE: Line width
-          opacity={0.7}    // 👻 CHANGE TRANSPARENCY HERE: 0.0 (invisible) to 1.0 (solid)
+          color="#353f52" // 🎨 Keep original dark gray color
+          weight={2}       // 📏 Keep original thickness
+          opacity={isSelected ? 1.0 : 0.7}    // 👻 More opaque when selected
           smoothFactor={1.0}
-          // dashArray removed - now solid lines instead of dashed
+          eventHandlers={{
+            click: () => onStreetClick(street.properties.id, street.properties.name, 'unsurveyed')
+          }}
         />
       );
     });
