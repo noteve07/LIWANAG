@@ -6,18 +6,20 @@ interface BarangayBoundariesProps {
   selectedBarangay: BarangayData | null;
 }
 
-export const BarangayBoundaries = ({ selectedBarangay }: BarangayBoundariesProps) => {
+export const BarangayBoundaries = ({
+  selectedBarangay,
+}: BarangayBoundariesProps) => {
   const [barangaysData, setBarangaysData] = useState<BarangayData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadBarangaysData = async () => {
       try {
-        const response = await fetch('/barangays.json');
+        const response = await fetch("/barangays.json");
         const data = await response.json();
         setBarangaysData(data);
       } catch (error) {
-        console.error('Failed to load barangays data:', error);
+        console.error("Failed to load barangays data:", error);
       } finally {
         setLoading(false);
       }
@@ -32,7 +34,7 @@ export const BarangayBoundaries = ({ selectedBarangay }: BarangayBoundariesProps
 
   // Convert coordinates from [lon, lat] to [lat, lon] for Leaflet
   const convertCoordinates = (coordinates: number[][]) => {
-    return coordinates.map(coord => [coord[1], coord[0]] as [number, number]);
+    return coordinates.map((coord) => [coord[1], coord[0]] as [number, number]);
   };
 
   return (
@@ -40,12 +42,14 @@ export const BarangayBoundaries = ({ selectedBarangay }: BarangayBoundariesProps
       {selectedBarangay && (
         <Polygon
           key={`barangay-boundary-${selectedBarangay.id}`}
-          positions={convertCoordinates(selectedBarangay.boundary.coordinates[0])}
-          color="#3b82f6" // Blue color for barangay boundary
+          positions={convertCoordinates(
+            selectedBarangay.boundary.coordinates[0]
+          )}
+          color="#075988ff" // Darker blue color for barangay boundary that matches UI theme
           weight={3}
           opacity={0.8}
-          fillColor="#3b82f6"
-          fillOpacity={0.1}
+          fillColor="#3c4e8bff"
+          fillOpacity={0.15}
         />
       )}
     </>

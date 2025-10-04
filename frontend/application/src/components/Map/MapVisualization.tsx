@@ -278,7 +278,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
                   margin: 0,
                   fontSize: "16px",
                   fontWeight: "600",
-                  color: "#3b82f6",
+                  color: "#1e40af",
                 }}
               >
                 Barangay Details
