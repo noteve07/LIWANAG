@@ -8,9 +8,11 @@ interface MapPolylinesProps {
   streetNames: string[];
   showPolylines: boolean;
   points: PointData[];
+  selectedStreetId?: number;
+  onStreetClick: (streetId: number, streetName: string, type: 'surveyed', averageLux: number) => void;
 }
 
-export const MapPolylines = ({ streetNames, showPolylines, points }: MapPolylinesProps) => {
+export const MapPolylines = ({ streetNames, showPolylines, points, selectedStreetId, onStreetClick }: MapPolylinesProps) => {
   // Function to create gradient line segments for a street (create continuous chains)
   const renderStreetLines = (streetName: string) => {
     // Extract street ID from the streetName (format: "Street X")
@@ -18,6 +20,10 @@ export const MapPolylines = ({ streetNames, showPolylines, points }: MapPolyline
     const streetPoints = points.filter((p) => p.street_id === streetId);
     
     if (streetPoints.length < 2) return [];
+    
+    // Calculate average lux for this street
+    const averageLux = streetPoints.reduce((sum, point) => sum + point.lux, 0) / streetPoints.length;
+    const isSelected = selectedStreetId === streetId;
     
     const connectedSegments: JSX.Element[] = [];
     const visited = new Set<number>();
@@ -63,6 +69,24 @@ export const MapPolylines = ({ streetNames, showPolylines, points }: MapPolyline
         const point1 = chain[i];
         const point2 = chain[i + 1];
         
+        // Add dashed border for selected street using average lux color
+        if (isSelected) {
+          connectedSegments.push(
+            <Polyline
+              key={`${streetName}-highlight-${point1.id}-${point2.id}`}
+              positions={[
+                [point1.lat, point1.lon],
+                [point2.lat, point2.lon],
+              ]}
+              color={getLuxColor(averageLux)} // Average lux color for highlight
+              weight={7}      // Thicker for border
+              opacity={0.8}   // Semi-transparent
+              dashArray="10, 5" // Dashed pattern for border effect
+              smoothFactor={1.0}
+            />
+          );
+        }
+        
         // Draw direct line between points (no interpolation for smoother appearance)
         connectedSegments.push(
           <Polyline
@@ -71,10 +95,13 @@ export const MapPolylines = ({ streetNames, showPolylines, points }: MapPolyline
               [point1.lat, point1.lon],
               [point2.lat, point2.lon],
             ]}
-            color={getLuxColor((point1.lux + point2.lux) / 2)}
-            weight={3}
-            opacity={0.8}
+            color={getLuxColor((point1.lux + point2.lux) / 2)} // Keep original gradient colors (don't override)
+            weight={3} // Keep original thickness
+            opacity={isSelected ? 1.0 : 0.8}
             smoothFactor={1.0}
+            eventHandlers={{
+              click: () => onStreetClick(streetId, streetName, 'surveyed', averageLux)
+            }}
           />
         );
       }
