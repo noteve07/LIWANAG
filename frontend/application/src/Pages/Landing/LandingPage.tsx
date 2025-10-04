@@ -211,7 +211,7 @@ export default function LandingPage() {
       <main className="relative z-10 flex flex-col">
         {/* Hero Section - Full Width background only, no card-like appearance */}
         <section id="hero" className="relative overflow-hidden w-full h-screen bg-[#1a1a1a] border-b border-yellow-900/20">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-transparent to-yellow-500/5" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-yellow-500/7 via-transparent to-yellow-500/5" />
 
           <div className="relative mx-auto w-full h-screen max-w-6xl grid gap-10 px-4 sm:px-6 md:px-12 py-20 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
             <div className="space-y-8 motion-safe:animate-[fadeInUp_1s_ease-out]">
