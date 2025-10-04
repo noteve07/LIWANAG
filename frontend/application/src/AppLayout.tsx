@@ -84,7 +84,7 @@ function Sidebar() {
       <nav className="flex-1 flex flex-col px-4 pb-6">
         <ul className="space-y-1 flex-1 mt-4">
           <li>
-            <NavLink to="/dashboard" className={({isActive}) => 
+            <NavLink to="dashboard" className={({isActive}) => 
               isActive
                 ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
                 : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
@@ -94,7 +94,7 @@ function Sidebar() {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/streetIllumination" className={({isActive}) => 
+            <NavLink to="streetIllumination" className={({isActive}) => 
               isActive
                 ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
                 : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
@@ -104,7 +104,7 @@ function Sidebar() {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/deviceManager" className={({isActive}) => 
+            <NavLink to="deviceManager" className={({isActive}) => 
               isActive
                 ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
                 : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
@@ -114,7 +114,7 @@ function Sidebar() {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/analytics" className={({isActive}) => 
+            <NavLink to="analytics" className={({isActive}) => 
               isActive
                 ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
                 : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
@@ -124,7 +124,7 @@ function Sidebar() {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/luxor" className={({isActive}) => 
+            <NavLink to="luxor" className={({isActive}) => 
               isActive
                 ? "flex items-center gap-3 mx-2 px-4 py-3 bg-gradient-to-r from-yellow-400/20 to-yellow-400/5 text-yellow-100 rounded-xl shadow-lg border-l-4 border-yellow-400 font-medium transition-all duration-200 transform scale-[1.02]"
                 : "flex items-center gap-3 mx-2 px-4 py-3 text-gray-300 hover:bg-gradient-to-r hover:from-slate-700/40 hover:to-slate-600/20 hover:text-white rounded-xl transition-all duration-200 hover:transform hover:translate-x-1"
