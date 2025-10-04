@@ -1,17 +1,16 @@
 import React from "react";
 import { Polyline } from "react-leaflet";
 import type { PointData } from "../types/mapTypes";
-import { getLuxColor, calculateDistance, interpolatePoints } from "../utils/mapUtils";
-import { ZOOM_THRESHOLDS, MAP_CONFIG } from "../constants/mapConstants";
+import { getLuxColor, calculateDistance } from "../utils/mapUtils";
+import { MAP_CONFIG } from "../constants/mapConstants";
 
 interface MapPolylinesProps {
   streetNames: string[];
   showPolylines: boolean;
-  zoom: number;
   points: PointData[];
 }
 
-export const MapPolylines = ({ streetNames, showPolylines, zoom, points }: MapPolylinesProps) => {
+export const MapPolylines = ({ streetNames, showPolylines, points }: MapPolylinesProps) => {
   // Function to create gradient line segments for a street (create continuous chains)
   const renderStreetLines = (streetName: string) => {
     // Extract street ID from the streetName (format: "Street X")
@@ -35,7 +34,7 @@ export const MapPolylines = ({ streetNames, showPolylines, zoom, points }: MapPo
       // Keep extending the chain by finding the nearest unvisited neighbor
       while (true) {
         let nearestPoint: PointData | null = null;
-        let nearestDistance = MAP_CONFIG.MAX_CONNECTION_DISTANCE;
+        let nearestDistance: number = MAP_CONFIG.MAX_CONNECTION_DISTANCE;
         
         // Find the nearest unvisited point within connection distance
         for (const candidate of streetPoints) {

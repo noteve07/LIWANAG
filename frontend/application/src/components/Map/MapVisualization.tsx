@@ -9,6 +9,7 @@ import { ViewportTracker } from "./components/ViewportTracker";
 import { MapControls } from "./components/MapControls";
 import { MapMarkers } from "./components/MapMarkers";
 import { MapPolylines } from "./components/MapPolylines";
+import { UnsurveyedStreets } from "./components/UnsurveyedStreets";
 import LoadingScreen from "../LoadingScreen";
 
 
@@ -17,7 +18,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
   // Custom hooks
   const { points, streetNames, loading, error } = useIlluminationData();
   const { zoom, handleZoomChange } = useZoomTracking();
-  const { bounds, updateBounds, isPointInViewport } = useViewportBounds();
+  const { updateBounds, isPointInViewport } = useViewportBounds();
   
   // Local state
   const [showMarkers, setShowMarkers] = useState(true);
@@ -144,10 +145,14 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
            <ZoomTracker onZoomChange={handleZoomChange} />
            <ViewportTracker onBoundsChange={updateBounds} />
            
+           <UnsurveyedStreets 
+             points={points}
+             showPolylines={showPolylines}
+           />
+           
            <MapPolylines 
              streetNames={streetNames}
              showPolylines={showPolylines}
-             zoom={zoom}
              points={points}
            />
            
