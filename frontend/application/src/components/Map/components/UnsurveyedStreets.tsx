@@ -71,11 +71,11 @@ export const UnsurveyedStreets = ({ points, showPolylines }: UnsurveyedStreetsPr
         <Polyline
           key={`unsurveyed-${street.properties.id}-${lineIndex}`}
           positions={positions}
-          color="#6b7280" // Gray color for unsurveyed streets
-          weight={2}
-          opacity={0.6}
+          color="#353f52" // 🎨 CHANGE COLOR HERE: Gray color for unsurveyed streets
+          weight={2}       // 📏 CHANGE LINE THICKNESS HERE: Line width
+          opacity={0.7}    // 👻 CHANGE TRANSPARENCY HERE: 0.0 (invisible) to 1.0 (solid)
           smoothFactor={1.0}
-          dashArray="5, 5" // Dashed line to differentiate from surveyed streets
+          // dashArray removed - now solid lines instead of dashed
         />
       );
     });

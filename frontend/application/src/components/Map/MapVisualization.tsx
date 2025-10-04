@@ -10,6 +10,7 @@ import { MapControls } from "./components/MapControls";
 import { MapMarkers } from "./components/MapMarkers";
 import { MapPolylines } from "./components/MapPolylines";
 import { UnsurveyedStreets } from "./components/UnsurveyedStreets";
+import { PartiallyUnsurveyedStreets } from "./components/PartiallyUnsurveyedStreets";
 import LoadingScreen from "../LoadingScreen";
 
 
@@ -146,6 +147,11 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
            <ViewportTracker onBoundsChange={updateBounds} />
            
            <UnsurveyedStreets 
+             points={points}
+             showPolylines={showPolylines}
+           />
+           
+           <PartiallyUnsurveyedStreets 
              points={points}
              showPolylines={showPolylines}
            />
