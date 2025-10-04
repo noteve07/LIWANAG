@@ -10,7 +10,7 @@ function StreetIllumination() {
   return (
     <div className="absolute -inset-4 overflow-hidden">
       <MapVisualization height="100%" width="100%" />
-      
+
       {/* Floating Chat Button */}
       {!isChatOpen && (
         <button
@@ -33,7 +33,7 @@ function StreetIllumination() {
             </div>
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => navigate('/luxor')}
+                onClick={() => navigate("/luxor")}
                 className="hover:bg-black/10 rounded-full p-1.5 transition-colors"
                 title="Go to full chat"
               >
@@ -47,7 +47,7 @@ function StreetIllumination() {
               </button>
             </div>
           </div>
-          
+
           {/* Chat Messages */}
           <div className="flex-1 p-4 overflow-y-auto space-y-3">
             {/* Luxor's greeting message */}
@@ -59,25 +59,26 @@ function StreetIllumination() {
                 Hi I am Luxor, how can I help you?
               </div>
             </div>
-            
+
             {/* Sample user message */}
             <div className="flex items-start space-x-2 justify-end">
               <div className="bg-amber-400 text-gray-900 text-sm px-3 py-2 rounded-lg rounded-tr-none max-w-[200px]">
                 Hello Luxor, are the streetlights in Cupang Proper dim?
               </div>
             </div>
-            
+
             {/* Sample Luxor response */}
             <div className="flex items-start space-x-2">
               <div className="bg-amber-400 rounded-full p-1.5 flex-shrink-0">
                 <Bot size={12} className="text-gray-900" />
               </div>
               <div className="bg-slate-700/50 text-white text-sm px-3 py-2 rounded-lg rounded-tl-none max-w-[200px]">
-                As of 9:00 PM the lights are working well, as they measure at 795 lux.
+                As of 9:00 PM the lights are working well, as they measure at
+                795 lux.
               </div>
             </div>
           </div>
-          
+
           {/* Chat Input */}
           <div className="p-3 border-t border-slate-600/30">
             <div className="flex items-center space-x-2">

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Streets + Illumination Data Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- leaflet css -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- leaflet js -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // initialize map
+    var map = L.map('map');
+
+    // add osm tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // balanced colors for lux ranges
+    function getLuxColor(lux) {
+      if (lux <= 5) return "#e74c3c";   // red
+      else if (lux <= 12) return "#f1c40f"; // yellow
+      else if (lux <= 20) return "#e67e22"; // orange
+      else return "#27ae60";            // green
+    }
+
+    // colors for streets with data
+    function getStreetColor(category) {
+      switch (category) {
+        case "highway": return "#e74c3c";
+        case "main_road": return "#e67e22";
+        case "residential": return "#3498db";
+        default: return "#7f8c8d";
+      }
+    }
+
+    // storage for illumination-linked street ids and markers
+    let streetsWithData = new Set();
+    let markers = [];
+
+    // load illumination data first
+    fetch("illumination_data.json")
+      .then(response => response.json())
+      .then(data => {
+        data.forEach(item => {
+          if (item.lat && item.lon) {
+            // add street id to set
+            if (item.street_id) {
+              streetsWithData.add(item.street_id);
+            }
+
+            // add marker
+            var circle = L.circleMarker([item.lat, item.lon], {
+              radius: 6,
+              fillColor: getLuxColor(item.lux),
+              color: "white",
+              weight: 1,
+              opacity: 1,
+              fillOpacity: 0.85
+            }).bindPopup(`
+              <b>ID:</b> ${item.id}<br>
+              <b>Created:</b> ${item.created_at}<br>
+              <b>Lux:</b> ${item.lux}<br>
+              <b>Street ID:</b> ${item.street_id}<br>
+              <b>Barangay ID:</b> ${item.barangay_id}<br>
+              <b>Sensor:</b> ${item.sensor}
+            `);
+
+            markers.push(circle);
+          }
+        });
+
+        // after markers, load streets
+        loadStreets();
+      });
+
+    function loadStreets() {
+      fetch("streets_duplicate.geojson")
+        .then(res => res.json())
+        .then(geojson => {
+          let allLayers = [];
+
+          // base layer: all streets in thick gray
+          let grayLayer = L.geoJSON(geojson, {
+            style: {
+              color: "#555555",
+              weight: 5,
+              opacity: 0.9
+            },
+            onEachFeature: function(feature, layer) {
+              layer.bindPopup(`
+                <b>${feature.properties.name || "Unnamed Street"}</b><br>
+                Category: ${feature.properties.road_category}<br>
+                Meters: ${feature.properties.meters || "N/A"}
+              `);
+            }
+          }).addTo(map);
+          allLayers.push(grayLayer);
+
+          // overlay colored streets only for those with data
+          let colorLayer = L.geoJSON(geojson, {
+            style: function(feature) {
+              if (streetsWithData.has(feature.properties.id)) {
+                return {
+                  color: getStreetColor(feature.properties.road_category),
+                  weight: 3, // thinner than gray base
+                  opacity: 0.95
+                };
+              } else {
+                return { opacity: 0 }; // invisible if no data
+              }
+            }
+          }).addTo(map);
+          allLayers.push(colorLayer);
+
+          // add markers
+          let markerLayer = L.featureGroup(markers).addTo(map);
+          allLayers.push(markerLayer);
+
+          // fit map to everything
+          let group = L.featureGroup(allLayers);
+          map.fitBounds(group.getBounds(), { padding: [20, 20] });
+        });
+    }
+  </script>
+</body>
+</html>
