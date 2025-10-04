@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Barangays Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 100vh; width: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // initialize map
+    var map = L.map('map').setView([14.67, 120.54], 12); // sample center (Balanga)
+
+    // add osm tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // random pastel color generator
+    function randomColor() {
+      const r = Math.floor(150 + Math.random() * 100);
+      const g = Math.floor(150 + Math.random() * 100);
+      const b = Math.floor(150 + Math.random() * 100);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    // load barangays geojson
+    fetch("barangays.json")
+      .then(res => res.json())
+      .then(data => {
+        let geojsonLayer = L.geoJSON(data, {
+          style: {
+            color: "#333",
+            weight: 1,
+            fillColor: randomColor(),
+            fillOpacity: 0.4
+          },
+          onEachFeature: function (feature, layer) {
+            layer.bindPopup(`<b>${feature.properties.name}</b><br>ID: ${feature.properties.id}`);
+          }
+        }).addTo(map);
+
+        // auto-zoom to all features
+        map.fitBounds(geojsonLayer.getBounds());
+      })
+      .catch(err => console.error(err));
+  </script>
+</body>
+</html>
