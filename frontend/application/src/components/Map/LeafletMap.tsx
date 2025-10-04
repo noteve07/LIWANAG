@@ -1,4 +1,10 @@
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  ZoomControl,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useState } from "react";
@@ -125,7 +131,8 @@ function LeafletMap({
          }
          
          .leaflet-top.leaflet-left {
-           display: none !important;
+           top: 90px !important;
+           left: 15px !important;
          }
          
          /* Make sure all leaflet controls stay within bounds */
@@ -200,22 +207,24 @@ function LeafletMap({
          }
        `}</style>
 
-      <div style={{ 
-        height, 
-        width, 
-        position: "relative", 
-        overflow: "hidden", 
-        zIndex: 1,
-        marginLeft: "0",
-        paddingLeft: "0",
-        backgroundColor: "#070B13"
-      }}>
-        {/* Google Maps Style Layer Switcher */}
+      <div
+        style={{
+          height,
+          width,
+          position: "relative",
+          overflow: "hidden",
+          zIndex: 1,
+          marginLeft: "0",
+          paddingLeft: "0",
+          backgroundColor: "#070B13",
+        }}
+      >
+        {/* Google Maps Style Layer Switcher - Now positioned at top-left */}
         <div
           style={{
             position: "absolute",
             top: "15px",
-            right: "30px",
+            left: "15px",
             zIndex: 1000,
             display: "flex",
             flexDirection: "column",
@@ -313,7 +322,6 @@ function LeafletMap({
           zoomControl={false}
           style={{ height: "100%", width: "100%", backgroundColor: "#070B13" }}
         >
-
           <TileLayer
             key={currentTheme}
             attribution={
@@ -323,14 +331,13 @@ function LeafletMap({
             maxZoom={19}
             maxNativeZoom={18}
             className={
-              currentTheme === "satellite" 
-                ? "night-satellite-base" 
+              currentTheme === "satellite"
+                ? "night-satellite-base"
                 : currentTheme === "default"
                 ? "default-theme-dark"
                 : ""
-            } 
+            }
           />
-
 
           {/* Night mode overlay */}
           {currentTheme === "night" && (
@@ -358,7 +365,9 @@ function LeafletMap({
         )}
 
         {/* Blue overlay for default theme */}
-        {currentTheme === "default" && <div className="default-theme-blue-overlay" />}
+        {currentTheme === "default" && (
+          <div className="default-theme-blue-overlay" />
+        )}
       </div>
     </>
   );
