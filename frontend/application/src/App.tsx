@@ -15,7 +15,7 @@ import Dashboard from './Pages/Dashboard/Dashboard';
 import DeviceManager from './Pages/DeviceManager/DeviceManager';
 import Analytics from './Pages/Analytics/Analytics';
 import BarangayDetails from './Pages/Analytics/BarangayDetails';
-import Luxor from './Pages/Luxor';
+import Luxor from './Pages/LuxorAI/Luxor';
 import StreetIllumination from './Pages/StreetIllumination';
 import RootLayout from './RouteLayout/RootLayout';
 import AnalyticsLayout from './RouteLayout/AnalyticsLayout';
