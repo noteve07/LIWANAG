@@ -1,0 +1,1 @@
+# cd backend; uvicorn LuxorAI.luxor_service:app --reload

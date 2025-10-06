@@ -384,14 +384,14 @@ class LuxorAgent:
         reply = (
             "Hello! I'm Luxor AI, your assistant for Balanga street lighting data.\n\n"
             "**I can show you data from your dataset:**\n"
-            "• `list all barangay` - See available barangays\n"
-            "• `list all street` - See available streets  \n"
-            "• `show me dark areas` - Lighting analysis\n"
-            "• `priority areas` - Maintenance recommendations\n\n"
+            "• list all barangay - See available barangays\n"
+            "• list all street - See available streets  \n"
+            "• show me dark areas - Lighting analysis\n"
+            "• priority areas - Maintenance recommendations\n\n"
             "**Or ask general questions:**\n"
-            "• `How many barangays in Balanga?`\n"
-            "• `What are road categories?`\n"
-            "• `Lighting standards for streets?`\n\n"
+            "• How many barangays in Balanga?\n"
+            "• What are road categories?\n"
+            "• Lighting standards for streets?\n\n"
             "What would you like to know?"
         )
         return {
