@@ -179,7 +179,7 @@ async def receive_sensor_demo_batch(payload: SensorDemoBatchPayload):
         )
 
         base_time = datetime.now()
-        extended_records = []
+        records = []
 
         for index, reading in enumerate(payload.readings):
             timestamp = (base_time + timedelta(milliseconds=index)).isoformat()
@@ -190,38 +190,11 @@ async def receive_sensor_demo_batch(payload: SensorDemoBatchPayload):
                 "lux": float(reading.lux),
                 "sensor": payload.sensor,
                 "timestamp": timestamp,
-                "device_id": payload.device_id,
             }
 
-            if reading.timestamp is not None:
-                record["device_timestamp_ms"] = reading.timestamp
-            if reading.gps_fix is not None:
-                record["gps_fix"] = reading.gps_fix
+            records.append(record)
 
-            extended_records.append(record)
-
-        response = supabase.table("sensor_demo").insert(extended_records).execute()
-
-        error_detail = getattr(response, "error", None)
-
-        if error_detail:
-            print(
-                "⚠️ Extended batch insert failed, retrying without optional fields",
-                error_detail,
-            )
-
-            minimal_records = [
-                {
-                    "lat": reading["lat"],
-                    "lon": reading["lon"],
-                    "lux": reading["lux"],
-                    "sensor": reading["sensor"],
-                    "timestamp": reading["timestamp"],
-                }
-                for reading in extended_records
-            ]
-
-            response = supabase.table("sensor_demo").insert(minimal_records).execute()
+        response = supabase.table("sensor_demo").insert(records).execute()
 
         if response.data:
             print("DEMO BATCH DATA INSERTED TO SUPABASE SUCCESSFULLY")
