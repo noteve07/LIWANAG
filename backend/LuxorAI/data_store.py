@@ -5,6 +5,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -16,6 +17,22 @@ INTENT_KEYWORDS = {
 }
 
 import pandas as pd
+import numpy as np
+def _to_native(value: Any) -> Any:
+    """Convert pandas/numpy objects into plain Python types for JSON serialization."""
+    if isinstance(value, pd.Timestamp):
+        if pd.isna(value):  # type: ignore[arg-type]
+            return None
+        return value.to_pydatetime().isoformat()
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, (set, tuple)):
+        return [_to_native(item) for item in value]
+    if isinstance(value, list):
+        return [_to_native(item) for item in value]
+    return value
 
 try:
     from shapely.geometry import shape  # type: ignore
@@ -237,8 +254,8 @@ class LuxorDataStore:
         records = []
         for row in self.barangay_df.head(limit).itertuples():
             records.append({
-                "id": getattr(row, "id", None),
-                "name": getattr(row, "name", None),
+                "id": _to_native(getattr(row, "id", None)),
+                "name": _to_native(getattr(row, "name", None)),
             })
         return records
 
@@ -249,9 +266,9 @@ class LuxorDataStore:
         records = []
         for row in self.street_df.head(limit).itertuples():
             records.append({
-                "id": getattr(row, "id", None),
-                "name": getattr(row, "name", None),
-                "road_category": getattr(row, "road_category", None),
+                "id": _to_native(getattr(row, "id", None)),
+                "name": _to_native(getattr(row, "name", None)),
+                "road_category": _to_native(getattr(row, "road_category", None)),
             })
         return records
 
@@ -262,11 +279,11 @@ class LuxorDataStore:
         records = []
         for row in self.illumination_df.head(limit).itertuples():
             records.append({
-                "id": getattr(row, "id", None),
-                "lux": getattr(row, "lux", None),
-                "street_id": getattr(row, "street_id", None),
-                "barangay_id": getattr(row, "barangay_id", None),
-                "sensor": getattr(row, "sensor", None),
+                "id": _to_native(getattr(row, "id", None)),
+                "lux": _to_native(getattr(row, "lux", None)),
+                "street_id": _to_native(getattr(row, "street_id", None)),
+                "barangay_id": _to_native(getattr(row, "barangay_id", None)),
+                "sensor": _to_native(getattr(row, "sensor", None)),
             })
         return records
 
@@ -333,12 +350,12 @@ class LuxorDataStore:
         records = []
         for row in df.itertuples():
             records.append({
-                "id": getattr(row, "id", None),
-                "lux": getattr(row, "lux", None),
-                "street_id": getattr(row, "street_id", None),
-                "barangay_id": getattr(row, "barangay_id", None),
-                "sensor": getattr(row, "sensor", None),
-                "created_at": getattr(row, "created_at", None),
+                "id": _to_native(getattr(row, "id", None)),
+                "lux": _to_native(getattr(row, "lux", None)),
+                "street_id": _to_native(getattr(row, "street_id", None)),
+                "barangay_id": _to_native(getattr(row, "barangay_id", None)),
+                "sensor": _to_native(getattr(row, "sensor", None)),
+                "created_at": _to_native(getattr(row, "created_at", None)),
             })
         return records
 
@@ -355,8 +372,8 @@ class LuxorDataStore:
         records = []
         for row in result_df.itertuples():
             records.append({
-                "id": getattr(row, "id", None),
-                "name": getattr(row, "name", None),
-                "road_category": getattr(row, "road_category", None) if hasattr(row, "road_category") else None,
+                "id": _to_native(getattr(row, "id", None)),
+                "name": _to_native(getattr(row, "name", None)),
+                "road_category": _to_native(getattr(row, "road_category", None)) if hasattr(row, "road_category") else None,
             })
         return records
