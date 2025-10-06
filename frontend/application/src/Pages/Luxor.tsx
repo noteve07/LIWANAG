@@ -1,11 +1,43 @@
-import { useState, useRef, useEffect } from "react";
-import { Bot, Send, User, Lightbulb } from "lucide-react";
+import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { Bot, Send, User } from "lucide-react";
+
+type MessageType = "user" | "bot";
+
+type GenericRecord = Record<string, unknown>;
+
+interface LuxorContext {
+  illumination?: GenericRecord[];
+  barangays?: GenericRecord[];
+  streets?: GenericRecord[];
+}
+
+interface LuxorResponse {
+  question: string;
+  answer: string;
+  context?: LuxorContext;
+  model?: string | null;
+  used_llm?: boolean;
+}
+
+interface Message {
+  id: number;
+  type: MessageType;
+  content: string;
+  timestamp: Date;
+  context?: LuxorContext;
+  model?: string | null;
+}
+
+function buildAnswerCopy(result: LuxorResponse) {
+  const trimmed = result.answer?.trim();
+  return trimmed ?? "";
+}
 
 function Luxor() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -15,55 +47,80 @@ function Luxor() {
     scrollToBottom();
   }, [messages]);
 
-  const sampleResponses = [
-    "Based on the latest sensor data, the street lights in that area are functioning optimally with an average lux reading of 650-750 lux. All 12 sensors in that zone are reporting normal values.",
-    "I can see that 47 out of 52 streetlight sensors are currently online and collecting illumination data. The remaining 5 sensors are offline, mainly in the northern district.",
-    "The collected illumination data shows 78% well-lit coverage across Balanga City. Poorly lit areas include sections of Cupang (average 3.2 lux) and parts of Poblacion (average 4.1 lux).",
-    "Current illumination levels are optimal. Tonight's average street light brightness is 12.4 lux citywide, with peak readings of 18-22 lux along major thoroughfares.",
-    "Sensor Alpha_23 in Tenejero is reporting consistently low readings (2.1 lux) over the past 3 days. This indicates potential bulb degradation or obstruction.",
-  ];
+  // Context data is still stored per message for future “show all” intents, but we intentionally
+  // keep rendering minimal to avoid information overload. The backend response already includes a
+  // concise quick-reference section for the most relevant items.
+  const handleSendMessage = async () => {
+    const trimmed = inputMessage.trim();
+    if (!trimmed) return;
 
-  const handleSendMessage = () => {
-    if (!inputMessage.trim()) return;
-
-    // Add user message
-    const userMessage = {
-      id: Date.now(),
-      type: 'user',
-      content: inputMessage,
-      timestamp: new Date()
+    const now = Date.now();
+    const userMessage: Message = {
+      id: now,
+      type: "user",
+      content: trimmed,
+      timestamp: new Date(),
     };
 
-    // If this is the first message, add greeting first
-    if (messages.length === 0) {
-      const greetingMessage = {
-        id: Date.now() - 1,
-        type: 'bot',
-        content: "Hello! I'm ready to help you with any questions about LIWANAG's street illumination system. What would you like to know?",
-        timestamp: new Date()
-      };
-      setMessages([greetingMessage, userMessage]);
-    } else {
-      setMessages(prev => [...prev, userMessage]);
-    }
-    
+    const placeholderId = now + 1;
+    const placeholder: Message = {
+      id: placeholderId,
+      type: "bot",
+      content: "…",
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage, placeholder]);
     setInputMessage('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const botMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        content: sampleResponses[Math.floor(Math.random() * sampleResponses.length)],
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botMessage]);
+    try {
+      const response = await fetch('/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: trimmed,
+          top_k: 5,
+          use_llm: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      const result: LuxorResponse = await response.json();
+      const answer = buildAnswerCopy(result) || "No answer available.";
+
+      setMessages(prev => prev.map(message => (
+        message.id === placeholderId
+          ? {
+            ...message,
+            content: answer,
+            timestamp: new Date(),
+            context: result.context,
+            model: result.model ?? null,
+          }
+          : message
+      )));
+    } catch (err) {
+      setMessages(prev => prev.map(m => (
+        m.id === placeholderId
+          ? {
+            ...m,
+            content: `[error] ${String(err)}`,
+            timestamp: new Date(),
+          }
+          : m
+      )));
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -125,7 +182,7 @@ function Luxor() {
                   ? 'bg-slate-700/40 text-white rounded-3xl rounded-tl-lg border border-slate-600/20'
                   : 'bg-gradient-to-br from-amber-400 to-amber-500 text-gray-900 rounded-3xl rounded-tr-lg shadow-lg'
               }`}>
-                <p className="text-base leading-relaxed">{message.content}</p>
+                <p className="text-base leading-relaxed whitespace-pre-wrap">{message.content}</p>
                 <span className={`text-sm mt-3 block ${
                   message.type === 'bot' ? 'text-gray-400' : 'text-gray-700/80'
                 }`}>
@@ -167,7 +224,7 @@ function Luxor() {
               onKeyPress={handleKeyPress}
               placeholder="Ask Luxor about street illumination data, sensor readings, lighting coverage..."
               className="w-full bg-slate-700/30 border border-slate-600/30 text-white rounded-2xl px-6 py-4 pr-16 focus:outline-none focus:border-amber-400/50 placeholder-gray-400 resize-none min-h-[70px] max-h-40 text-lg"
-              rows="1"
+              rows={1}
             />
             <div className="absolute bottom-3 right-3 text-xs text-gray-500">
               Press Enter to send
