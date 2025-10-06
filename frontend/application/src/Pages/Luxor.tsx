@@ -54,6 +54,7 @@ function Luxor() {
     const trimmed = inputMessage.trim();
     if (!trimmed) return;
 
+
     const now = Date.now();
     const userMessage: Message = {
       id: now,
@@ -62,15 +63,7 @@ function Luxor() {
       timestamp: new Date(),
     };
 
-    const placeholderId = now + 1;
-    const placeholder: Message = {
-      id: placeholderId,
-      type: "bot",
-      content: "…",
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage, placeholder]);
+    setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsTyping(true);
 
@@ -94,27 +87,28 @@ function Luxor() {
       const result: LuxorResponse = await response.json();
       const answer = buildAnswerCopy(result) || "No answer available.";
 
-      setMessages(prev => prev.map(message => (
-        message.id === placeholderId
-          ? {
-            ...message,
-            content: answer,
-            timestamp: new Date(),
-            context: result.context,
-            model: result.model ?? null,
-          }
-          : message
-      )));
+      // Add the bot's answer as a new message
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          type: "bot",
+          content: answer,
+          timestamp: new Date(),
+          context: result.context,
+          model: result.model ?? null,
+        },
+      ]);
     } catch (err) {
-      setMessages(prev => prev.map(m => (
-        m.id === placeholderId
-          ? {
-            ...m,
-            content: `[error] ${String(err)}`,
-            timestamp: new Date(),
-          }
-          : m
-      )));
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          type: "bot",
+          content: `[error] ${String(err)}`,
+          timestamp: new Date(),
+        },
+      ]);
     } finally {
       setIsTyping(false);
     }
