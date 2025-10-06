@@ -7,7 +7,11 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException
 
 from app.core.database import supabase
-from app.models.sensor_data import SensorData, SensorDemo
+from app.models.sensor_data import (
+    SensorData,
+    SensorDemo,
+    SensorDemoBatchPayload,
+)
 from app.models.sensor_device import DeviceOfflinePayload, SensorDevice, DeviceOnlinePayload, DeviceStatus
 from pydantic import BaseModel
 from shapely.geometry import Point
@@ -157,6 +161,87 @@ async def receive_sensor_demo_data(data: SensorDemo):
         error_traceback = traceback.format_exc()
         print("DEMO DATA ERROR TRACEBACK:\n", error_traceback)
         
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/sensor-demo-batch")
+async def receive_sensor_demo_batch(payload: SensorDemoBatchPayload):
+    """
+    Receives batched demo data from ESP32.
+    Persists multiple readings to sensor_demo table in Supabase.
+    """
+    if not payload.readings:
+        raise HTTPException(status_code=400, detail="No readings provided")
+
+    try:
+        print(
+            f"RECEIVED DEMO BATCH: {len(payload.readings)} readings from device {payload.device_id}"
+        )
+
+        base_time = datetime.now()
+        extended_records = []
+
+        for index, reading in enumerate(payload.readings):
+            timestamp = (base_time + timedelta(milliseconds=index)).isoformat()
+
+            record = {
+                "lat": reading.lat,
+                "lon": reading.lon,
+                "lux": float(reading.lux),
+                "sensor": payload.sensor,
+                "timestamp": timestamp,
+                "device_id": payload.device_id,
+            }
+
+            if reading.timestamp is not None:
+                record["device_timestamp_ms"] = reading.timestamp
+            if reading.gps_fix is not None:
+                record["gps_fix"] = reading.gps_fix
+
+            extended_records.append(record)
+
+        response = supabase.table("sensor_demo").insert(extended_records).execute()
+
+        error_detail = getattr(response, "error", None)
+
+        if error_detail:
+            print(
+                "⚠️ Extended batch insert failed, retrying without optional fields",
+                error_detail,
+            )
+
+            minimal_records = [
+                {
+                    "lat": reading["lat"],
+                    "lon": reading["lon"],
+                    "lux": reading["lux"],
+                    "sensor": reading["sensor"],
+                    "timestamp": reading["timestamp"],
+                }
+                for reading in extended_records
+            ]
+
+            response = supabase.table("sensor_demo").insert(minimal_records).execute()
+
+        if response.data:
+            print("DEMO BATCH DATA INSERTED TO SUPABASE SUCCESSFULLY")
+            return {
+                "status": "success",
+                "message": f"Demo batch data stored in Supabase: {len(payload.readings)} records",
+                "records_processed": len(response.data),
+                "device_id": payload.device_id,
+            }
+
+        raise Exception("Batch insert failed: No data returned from Supabase")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+
+        error_traceback = traceback.format_exc()
+        print("DEMO BATCH ERROR TRACEBACK:\n", error_traceback)
+
         raise HTTPException(status_code=500, detail=str(e))
 
 
