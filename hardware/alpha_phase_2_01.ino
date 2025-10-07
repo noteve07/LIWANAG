@@ -12,10 +12,25 @@
 #include <WiFiClientSecure.h>
 #include <TinyGPS++.h>
 #include <HardwareSerial.h>
+#include <FS.h>
+#include <SD.h>
+#include <SPI.h>
+#include <time.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 BH1750 lightMeter;
 TinyGPSPlus gps;
 HardwareSerial ss(2); // Use Serial2 for GPS module
+
+const int sdCsPin = 5;                 // CS wired to GPIO5
+const int sdMisoPin = 19;              // MISO wired to GPIO19
+const int sdMosiPin = 23;              // MOSI wired to GPIO23
+const int sdSckPin = 18;               // SCK wired to GPIO18
+const char* sdDataFilePath = "/alpha_1.json";
+bool sdAvailable = false;
+const int TIMEZONE_OFFSET_SECONDS = 8 * 3600; // UTC+08
 
 const char* ssid = "PLDTHOMEFIBReU2Fh";
 const char* password = "PLDTWIFI95WZm";
@@ -58,9 +73,213 @@ struct Measurement {
   float lat;
   float lon;
   float lux;
-  unsigned long timestamp;
+  String timestamp;
   bool gpsFix;
 };
+
+String lastKnownTimestamp = "";
+time_t lastKnownEpoch = 0;
+unsigned long lastEpochSyncMillis = 0;
+
+int monthStringToNumber(const char* month) {
+  if (strncmp(month, "Jan", 3) == 0) return 1;
+  if (strncmp(month, "Feb", 3) == 0) return 2;
+  if (strncmp(month, "Mar", 3) == 0) return 3;
+  if (strncmp(month, "Apr", 3) == 0) return 4;
+  if (strncmp(month, "May", 3) == 0) return 5;
+  if (strncmp(month, "Jun", 3) == 0) return 6;
+  if (strncmp(month, "Jul", 3) == 0) return 7;
+  if (strncmp(month, "Aug", 3) == 0) return 8;
+  if (strncmp(month, "Sep", 3) == 0) return 9;
+  if (strncmp(month, "Oct", 3) == 0) return 10;
+  if (strncmp(month, "Nov", 3) == 0) return 11;
+  if (strncmp(month, "Dec", 3) == 0) return 12;
+  return 0;
+}
+
+int64_t daysFromCivil(int year, unsigned month, unsigned day) {
+  year -= month <= 2;
+  const int64_t era = (year >= 0 ? year : year - 399) / 400;
+  const unsigned yoe = static_cast<unsigned>(year - era * 400);
+  const unsigned doy = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 + day - 1;
+  const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+  return era * 146097 + static_cast<int64_t>(doe) - 719468;
+}
+
+bool civilToEpoch(int year, int month, int day, int hour, int minute, int second, int tzOffsetSeconds, time_t& epoch) {
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return false;
+  }
+  int64_t days = daysFromCivil(year, static_cast<unsigned>(month), static_cast<unsigned>(day));
+  int64_t totalSeconds = days * 86400LL + hour * 3600LL + minute * 60LL + second + tzOffsetSeconds;
+  epoch = static_cast<time_t>(totalSeconds);
+  return true;
+}
+
+String epochToTimestamp(time_t epoch) {
+  struct tm tmTime;
+  gmtime_r(&epoch, &tmTime);
+  char buffer[20];
+  snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d %02d:%02d:%02d",
+           tmTime.tm_year + 1900,
+           tmTime.tm_mon + 1,
+           tmTime.tm_mday,
+           tmTime.tm_hour,
+           tmTime.tm_min,
+           tmTime.tm_sec);
+  return String(buffer);
+}
+
+time_t compileTimeEpoch() {
+  const char* date = __DATE__;
+  const char* timeStr = __TIME__;
+  char monthStr[4];
+  monthStr[0] = date[0];
+  monthStr[1] = date[1];
+  monthStr[2] = date[2];
+  monthStr[3] = '\0';
+
+  int month = monthStringToNumber(monthStr);
+  if (month == 0) {
+    return 0;
+  }
+
+  int day = atoi(date + 4);
+  int year = atoi(date + 7);
+  int hour = atoi(timeStr);
+  int minute = atoi(timeStr + 3);
+  int second = atoi(timeStr + 6);
+
+  time_t epoch;
+  if (!civilToEpoch(year, month, day, hour, minute, second, 0, epoch)) {
+    return 0;
+  }
+  return epoch;
+}
+
+bool ensureDataFileInitialized() {
+  if (SD.exists(sdDataFilePath)) {
+    return true;
+  }
+
+  File dataFile = SD.open(sdDataFilePath, FILE_WRITE);
+  if (!dataFile) {
+    Serial.println("❌ Failed to create SD data file");
+    return false;
+  }
+
+  dataFile.print("[]");
+  dataFile.close();
+  return true;
+}
+
+bool initSDCard() {
+  Serial.println("💾 Initializing SD card...");
+  SPI.begin(sdSckPin, sdMisoPin, sdMosiPin, sdCsPin);
+
+  if (!SD.begin(sdCsPin, SPI, 8000000)) {
+    Serial.println("⚠️ SD card initialization failed - continuing without offline storage");
+    return false;
+  }
+
+  if (!ensureDataFileInitialized()) {
+    Serial.println("⚠️ Could not prepare SD data file");
+    return false;
+  }
+
+  Serial.println("✅ SD card ready for offline storage");
+  return true;
+}
+
+bool appendMeasurementToSD(const Measurement& measurement) {
+  if (!sdAvailable) {
+    return false;
+  }
+
+  File dataFile = SD.open(sdDataFilePath, FILE_WRITE);
+  if (!dataFile) {
+    Serial.println("❌ Failed to open SD data file for append");
+    return false;
+  }
+
+  size_t size = dataFile.size();
+  if (size == 0) {
+    dataFile.print("[]");
+    size = 2;
+  }
+
+  if (size < 1 || !dataFile.seek(size - 1)) {
+    Serial.println("❌ Failed to position within SD data file");
+    dataFile.close();
+    return false;
+  }
+
+  bool firstEntry = size <= 2;
+  if (firstEntry) {
+    dataFile.print("\n");
+  } else {
+    dataFile.print(",\n");
+  }
+
+  dataFile.print("  {\"timestamp\":\"");
+  dataFile.print(measurement.timestamp);
+  dataFile.print("\"");
+  dataFile.print(",\"lat\":");
+  dataFile.print(measurement.lat, 6);
+  dataFile.print(",\"lon\":");
+  dataFile.print(measurement.lon, 6);
+  dataFile.print(",\"lux\":");
+  dataFile.print(measurement.lux, 2);
+  dataFile.print(",\"gpsFix\":");
+  dataFile.print(measurement.gpsFix ? "true" : "false");
+  dataFile.print("}\n]");
+
+  dataFile.close();
+  return true;
+}
+
+String getCurrentTimestamp() {
+  time_t epoch;
+  if (gps.date.isValid() && gps.time.isValid() &&
+      civilToEpoch(gps.date.year(), gps.date.month(), gps.date.day(),
+                   gps.time.hour(), gps.time.minute(), gps.time.second(),
+                   TIMEZONE_OFFSET_SECONDS, epoch)) {
+    lastKnownEpoch = epoch;
+    lastEpochSyncMillis = millis();
+    lastKnownTimestamp = epochToTimestamp(epoch);
+    return lastKnownTimestamp;
+  }
+
+  if (lastKnownEpoch > 0) {
+    unsigned long elapsedSeconds = (millis() - lastEpochSyncMillis) / 1000UL;
+    if (elapsedSeconds > 0) {
+      lastKnownEpoch += elapsedSeconds;
+      lastEpochSyncMillis += elapsedSeconds * 1000UL;
+    }
+    lastKnownTimestamp = epochToTimestamp(lastKnownEpoch);
+    return lastKnownTimestamp;
+  }
+
+  return String("1970-01-01 08:00:00");
+}
+
+bool syncTimeFromNTP(uint8_t maxAttempts = 10) {
+  configTime(0, 0, "pool.ntp.org", "time.nist.gov", "time.google.com");
+  for (uint8_t attempt = 0; attempt < maxAttempts; ++attempt) {
+    time_t now = time(nullptr);
+    if (now > 100000) {
+      time_t localEpoch = now + TIMEZONE_OFFSET_SECONDS;
+      lastKnownEpoch = localEpoch;
+      lastEpochSyncMillis = millis();
+      lastKnownTimestamp = epochToTimestamp(localEpoch);
+      Serial.println("🕒 Clock synced from NTP: " + lastKnownTimestamp);
+      return true;
+    }
+    delay(500);
+  }
+  Serial.println("⚠️ NTP sync failed - falling back to GPS/RTC");
+  return false;
+}
 
 const size_t MEASUREMENT_BATCH_SIZE = 5;
 const size_t MEASUREMENT_BUFFER_CAPACITY = 50;
@@ -83,7 +302,7 @@ void blinkCode(int times) {
   }
   delay(500);
 }
-  connectWiFi(5);
+
 bool connectWiFi(uint8_t maxAttempts = 3) {
   if (WiFi.status() == WL_CONNECTED) {
     return true;
@@ -318,7 +537,7 @@ String buildBatchPayload(size_t batchSize) {
     payload += "{\"lat\":" + String(m.lat, 6) +
                ",\"lon\":" + String(m.lon, 6) +
                ",\"lux\":" + String(m.lux, 2) +
-               ",\"timestamp\":" + String(m.timestamp) +
+               ",\"timestamp\":\"" + m.timestamp + "\"" +
                ",\"gpsFix\":" + String(m.gpsFix ? "true" : "false") + "}";
     if (i < batchSize - 1) {
       payload += ",";
@@ -415,9 +634,24 @@ bool checkMissionStatus(const char* url) {
 void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
+
+  time_t buildEpoch = compileTimeEpoch();
+  if (buildEpoch > 0) {
+    lastKnownEpoch = buildEpoch;
+    lastEpochSyncMillis = millis();
+    lastKnownTimestamp = epochToTimestamp(buildEpoch);
+    Serial.println("🕒 Clock primed from build timestamp: " + lastKnownTimestamp);
+  }
+
   Wire.begin();
   lightMeter.begin();
   Serial.println(F("BH1750 Test begin"));
+
+  sdAvailable = initSDCard();
+
+  if (!sdAvailable) {
+    Serial.println("⚠️ Offline logging disabled - SD card not ready");
+  }
   
   // Initialize GPS
   ss.begin(9600, SERIAL_8N1, 16, 17); // RX=16, TX=17 for ESP32
@@ -439,6 +673,10 @@ void setup() {
   // ensure WiFi connection before contacting backend
   if (!connectWiFi(5)) {
     Serial.println("⚠️ Proceeding without WiFi - device will retry in main loop");
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    syncTimeFromNTP();
   }
 
   if (!testServer()) {
@@ -476,8 +714,10 @@ void loop() {
     }
     
     // Try to reconnect (non-blocking)
-  blinkCode(3);
-  connectWiFi(5);
+    blinkCode(3);
+    if (connectWiFi(5)) {
+      syncTimeFromNTP();
+    }
   }
 
   // Send device heartbeat every 30 seconds
@@ -527,15 +767,22 @@ void loop() {
     measurement.lat = gpsAvailable ? currentLat : defaultLat;
     measurement.lon = gpsAvailable ? currentLon : defaultLon;
     measurement.lux = lux;
-    measurement.timestamp = currentTime;
+  measurement.timestamp = getCurrentTimestamp();
     measurement.gpsFix = gpsAvailable;
 
     enqueueMeasurement(measurement);
+
+    if (!appendMeasurementToSD(measurement)) {
+      if (sdAvailable) {
+        Serial.println("⚠️ Failed to persist measurement to SD");
+      }
+    }
 
     String gpsStatus = measurement.gpsFix ? "📍 GPS" : "📏 Default";
     Serial.println(
       "📊 Buffered reading #" + String(measurementBufferCount) +
       " - Lux: " + String(lux, 2) +
+      " | 🕒 " + measurement.timestamp +
       " | " + gpsStatus + ": " + String(measurement.lat, 6) + ", " + String(measurement.lon, 6)
     );
   }
