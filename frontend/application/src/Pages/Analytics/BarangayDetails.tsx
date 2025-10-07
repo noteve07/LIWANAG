@@ -31,7 +31,7 @@ export default function BarangayDetails() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-white">{barangayName} Details</h2>
         <button
-          onClick={() => navigate('/analytics')}
+          onClick={() => navigate('/app/analytics')}
           className="flex items-center text-blue-400 hover:text-blue-300"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -48,7 +48,7 @@ export default function BarangayDetails() {
             name={barangayName || ''}
             data={sensorData}
             isDetailView={true}
-            onClick={() => navigate('/analytics')}
+            onClick={() => navigate('/app/analytics')}
           />
         </div>
         

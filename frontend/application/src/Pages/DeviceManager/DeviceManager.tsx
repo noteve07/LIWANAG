@@ -17,7 +17,24 @@ const DeviceManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'list' | 'cards'>('list');
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>(() => {
+    try {
+      const stored = localStorage.getItem('deviceManager.viewMode');
+      if (stored === 'cards' || stored === 'list') return stored;
+    } catch {
+      // ignore (e.g., during SSR or restricted storage)
+    }
+    return 'cards';
+  });
+
+  // Persist user's view preference so a refresh preserves it
+  useEffect(() => {
+    try {
+      localStorage.setItem('deviceManager.viewMode', viewMode);
+    } catch {
+      // ignore storage errors
+    }
+  }, [viewMode]);
 
   useEffect(() => {
     const fetchDeviceData = async () => {
@@ -148,7 +165,7 @@ const DeviceManager: React.FC = () => {
                 }}
               />
               {/* Fallback ESP32 Icon */}
-              <div className="hidden w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+              <div className="opacity-0 w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold">ESP32</span>
               </div>
               <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${isOnline ? 'bg-green-400' : 'bg-red-400'} border-2 border-gray-800`}></div>
@@ -236,6 +253,15 @@ const DeviceManager: React.FC = () => {
               {/* View Mode Toggle */}
               <div className="flex items-center bg-gray-700 rounded overflow-hidden">
                 <button 
+                  className={`px-3 py-1 text-sm flex items-center ${viewMode === 'cards' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
+                  onClick={() => setViewMode('cards')}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 0 01-2-2v-2z" />
+                  </svg>
+                  Cards
+                </button>
+                <button 
                   className={`px-3 py-1 text-sm flex items-center ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
                   onClick={() => setViewMode('list')}
                 >
@@ -243,15 +269,6 @@ const DeviceManager: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                   List
-                </button>
-                <button 
-                  className={`px-3 py-1 text-sm flex items-center ${viewMode === 'cards' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
-                  onClick={() => setViewMode('cards')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                  </svg>
-                  Cards
                 </button>
               </div>
               
@@ -332,7 +349,16 @@ const DeviceManager: React.FC = () => {
             </div>
 
             
-            {/* List View */}
+            {/* Cards View - Default view showing device cards in 3-column grid */}
+            {viewMode === 'cards' && (
+              <div className="grid grid-cols-3 gap-8 max-w-5xl mx-auto">
+                {deviceData.devices.map(device => (
+                  <DeviceCard key={device.device_id} device={device} />
+                ))}
+              </div>
+            )}
+
+            {/* List View - Alternative table view */}
             {viewMode === 'list' && (
               <Card className="mb-6 bg-gray-800 border-gray-700">
                 <CardHeader>
@@ -409,15 +435,6 @@ const DeviceManager: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-            )}
-
-            {/* Cards View - 3 cards per row (6 total: 3 top, 3 bottom) */}
-            {viewMode === 'cards' && (
-              <div className="grid grid-cols-3 gap-8 max-w-5xl mx-auto">
-                {deviceData.devices.map(device => (
-                  <DeviceCard key={device.device_id} device={device} />
-                ))}
-              </div>
             )}
 
             {/* Selected Device Details Modal/Card */}
