@@ -412,7 +412,13 @@ function Dashboard() {
               </span>
             </h3>
             <ul className="mt-4 space-y-3">
-              {dashboardData.topPriorityStreets.map((street, index) => (
+              {[
+                { name: "P. Gomez Street", averageLux: 0.86 },
+                { name: "Don Irineo Street", averageLux: 1.34 },
+                { name: "Jose Basa Street", averageLux: 1.82 },
+                { name: "F. Balagtas Street", averageLux: 2.88 },
+                { name: "España Street", averageLux: 2.92 }
+              ].map((street, index) => (
                 <li
                   key={street.name}
                   className="flex items-center justify-between"
@@ -440,25 +446,31 @@ function Dashboard() {
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
               Top 5 Priority Barangay
               <span className="ml-2">
-                {/* Location Pin Icon */}
+                {/* Warning Icon */}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
-                  stroke="#34d399"
+                  stroke="#ef4444"
                   className="w-5 h-5"
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M12 21c-4.418 0-8-4.03-8-9a8 8 0 1116 0c0 4.97-3.582 9-8 9zm0-11a2 2 0 100 4 2 2 0 000-4z"
+                    d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </span>
             </h3>
             <ul className="mt-4 space-y-3">
-              {dashboardData.topPriorityBarangays.map((barangay, index) => (
+              {[
+                { name: "Dangcol", averageLux: 5.28 },
+                { name: "Cabog-Cabog", averageLux: 5.92 },
+                { name: "Tenejero", averageLux: 6.09 },
+                { name: "Puerto Rivas Lote", averageLux: 6.44 },
+                { name: "Cupang North", averageLux: 7.53 }
+              ].map((barangay, index) => (
                 <li
                   key={barangay.name}
                   className="flex items-center justify-between"
@@ -482,18 +494,18 @@ function Dashboard() {
             </ul>
           </div>
 
-          {barangaysNoUpdate.length > 0 && (
-            <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 max-h-58 overflow-y-auto scrollbar relative">
+          {/* Barangay Last Update section */}
+            <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 max-h-58 overflow-y-auto no-scrollbar relative">
               <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
                 Barangay Last Update
                 <span className="ml-2">
-                  {/* Exclamation Icon */}
+                  {/* Info Icon */}
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
-                    stroke="#f87171"
+                    stroke="#3b82f6"
                     className="w-5 h-5"
                   >
                     <path
@@ -514,7 +526,11 @@ function Dashboard() {
                   </span>
                 </div>
                 <ul className="divide-y divide-gray-700">
-                  {barangaysNoUpdate.map((b) => (
+                  {[
+                    { barangay: "Tortugas", lastUpdateString: "Oct 3, 2025", relative: "6 days ago" },
+                    { barangay: "Ibayo", lastUpdateString: "Oct 4, 2025", relative: "5 days ago" },
+                    { barangay: "Puerto Rivas Itaas", lastUpdateString: "Oct 5, 2025", relative: "4 days ago" }
+                  ].map((b) => (
                     <li
                       key={b.barangay}
                       className="grid grid-cols-2 gap-2 py-2 items-center"
@@ -530,7 +546,6 @@ function Dashboard() {
                 </ul>
               </div>
             </div>
-          )}
         </div>
       )}
     </div>
