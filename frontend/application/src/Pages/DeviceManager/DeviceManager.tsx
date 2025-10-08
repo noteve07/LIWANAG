@@ -17,7 +17,7 @@ const DeviceManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'list' | 'cards'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'cards'>('cards');
 
   useEffect(() => {
     const fetchDeviceData = async () => {
@@ -123,28 +123,19 @@ const DeviceManager: React.FC = () => {
     const canMission = canStartMission(device);
     
     return (
-      <Card className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-all duration-300 hover:shadow-lg overflow-hidden">
-        <CardContent className="p-4">
+      <Card className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-all duration-300 hover:shadow-lg overflow-hidden h-auto">
+        <CardContent className="p-3">
           {/* ESP32 Logo - Priority */}
           <div className="flex items-center justify-center p-2">
             <div className="relative">
               <img 
-                src="./src/assets/logo/esp32.png" 
+                src="/assets/logo/esp32_logo.png" 
                 alt="ESP32" 
-                className="w-24 h-24 object-contain brightness-0 invert"
+                className="w-20 h-20 object-contain brightness-0 invert"
                 onError={(e) => {
-                  // Try alternative paths
-                  const target = e.currentTarget as HTMLImageElement;
-                  if (target.src.includes('./src/')) {
-                    target.src = '/assets/logo/esp32.png';
-                  } else if (target.src.includes('/assets/')) {
-                    target.src = 'assets/logo/esp32.png';
-                  } else {
-                    // Final fallback - hide and show fallback icon
-                    target.style.display = 'none';
-                    const fallback = target.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.classList.remove('hidden');
-                  }
+                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.classList.remove('hidden');
+                  e.currentTarget.style.display = 'none';
                 }}
               />
               {/* Fallback ESP32 Icon */}
@@ -411,9 +402,9 @@ const DeviceManager: React.FC = () => {
               </Card>
             )}
 
-            {/* Cards View - 3 cards per row (6 total: 3 top, 3 bottom) */}
+            {/* Cards View - 3 cards per row with responsive design */}
             {viewMode === 'cards' && (
-              <div className="grid grid-cols-3 gap-8 max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mx-auto">
                 {deviceData.devices.map(device => (
                   <DeviceCard key={device.device_id} device={device} />
                 ))}
