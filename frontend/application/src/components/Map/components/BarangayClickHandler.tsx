@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useMapEvents } from "react-leaflet";
 import type { BarangayData } from "../utils/barangayUtils";
 import { findBarangayByPoint } from "../utils/barangayUtils";
+import { useMapClickContext } from "../../../contexts/useMapClickContext";
 
 interface BarangayClickHandlerProps {
   onBarangaySelect: (barangay: BarangayData | null) => void;
@@ -14,6 +15,7 @@ export const BarangayClickHandler = ({
 }: BarangayClickHandlerProps) => {
   const [barangaysData, setBarangaysData] = useState<BarangayData[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isClickOnStreet } = useMapClickContext();
 
   useEffect(() => {
     const loadBarangaysData = async () => {
@@ -35,6 +37,13 @@ export const BarangayClickHandler = ({
   useMapEvents({
     click: (e) => {
       if (loading) return;
+      
+      // Check if this click was on a street polyline
+      if (isClickOnStreet.current) {
+        // Reset the flag but don't process the click
+        isClickOnStreet.current = false;
+        return;
+      }
       
       const { lat, lng } = e.latlng;
       const clickedPoint: [number, number] = [lng, lat]; // [lon, lat]

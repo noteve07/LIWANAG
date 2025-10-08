@@ -16,6 +16,7 @@ import { BarangayClickHandler } from "./components/BarangayClickHandler";
 import { filterPointsByBarangay } from "./utils/barangayUtils";
 import type { BarangayData } from "./utils/barangayUtils";
 import LoadingScreen from "../LoadingScreen";
+import { MapClickProvider } from "../../contexts/MapClickProvider";
 
 function MapVisualization({ height, width }: MapVisualizationProps) {
   // Custom hooks
@@ -36,6 +37,9 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
     null
   );
 
+  // Click handling state to prevent barangay clicks when streets are clicked
+  const [isStreetClick, setIsStreetClick] = useState(false);
+
   // Handle street selection
   const handleStreetClick = (
     streetId: number,
@@ -43,6 +47,9 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
     type: "surveyed" | "unsurveyed" | "partial",
     averageLux?: number
   ) => {
+    // Set flag to prevent barangay selection
+    setIsStreetClick(true);
+
     setSelectedStreet({
       id: streetId,
       name: streetName,
@@ -53,6 +60,12 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
 
   // Handle barangay selection
   const handleBarangaySelect = (barangay: BarangayData | null) => {
+    // Don't select barangay if we just clicked a street
+    if (isStreetClick) {
+      setIsStreetClick(false);
+      return;
+    }
+
     setSelectedBarangay(barangay);
     // Clear street selection when barangay is selected
     if (barangay) {
@@ -73,7 +86,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
       })
     : streetNames;
 
-  // CSS for markers
+  // CSS for markers and popups
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
@@ -91,6 +104,49 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
         transition: filter 0.2s;
       }
       
+      /* Custom popup styling */
+      .leaflet-popup-content-wrapper {
+        background: transparent !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+      }
+      .leaflet-popup-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 0 !important;
+        min-width: 0 !important;
+      }
+      .leaflet-popup-tip {
+        background: rgba(17, 25, 38, 0.95) !important;
+        box-shadow: none !important;
+      }
+      .leaflet-popup-close-button {
+        color: #f59e0b !important;
+        opacity: 0.8;
+        font-size: 18px !important;
+        top: 5px !important;
+        right: 5px !important;
+      }
+      .leaflet-popup-close-button:hover {
+        color: white !important;
+        opacity: 1;
+      }
+      
+      /* Custom tooltip styling */
+      .custom-tooltip .leaflet-tooltip {
+        background: rgba(17, 25, 38, 0.95) !important;
+        border: none !important;
+        color: white !important;
+        font-weight: 500;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+        padding: 5px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      .custom-tooltip .leaflet-tooltip-top:before {
+        border-top-color: rgba(17, 25, 38, 0.95) !important;
+      }
     `;
     document.head.appendChild(style);
     return () => {
@@ -208,45 +264,49 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
           zIndex: 1,
         }}
       >
-        <LeafletMap height="100%" width="100%">
-          <ZoomTracker onZoomChange={handleZoomChange} />
-          <ViewportTracker onBoundsChange={updateBounds} />
-          <BarangayClickHandler
-            onBarangaySelect={handleBarangaySelect}
-            selectedBarangay={selectedBarangay}
-          />
+        <MapClickProvider>
+          <LeafletMap height="100%" width="100%">
+            <ZoomTracker onZoomChange={handleZoomChange} />
+            <ViewportTracker onBoundsChange={updateBounds} />
+            <BarangayClickHandler
+              onBarangaySelect={handleBarangaySelect}
+              selectedBarangay={selectedBarangay}
+            />
 
-          <BarangayBoundaries selectedBarangay={selectedBarangay} />
+            <BarangayBoundaries selectedBarangay={selectedBarangay} />
 
-          <UnsurveyedStreets
-            points={filteredPoints}
-            showPolylines={showPolylines}
-            selectedStreetId={selectedStreet?.id}
-            onStreetClick={handleStreetClick}
-          />
+            <UnsurveyedStreets
+              points={filteredPoints}
+              showPolylines={showPolylines}
+              selectedStreetId={selectedStreet?.id}
+              onStreetClick={handleStreetClick}
+            />
 
-          <PartiallyUnsurveyedStreets
-            points={filteredPoints}
-            showPolylines={showPolylines}
-            selectedStreetId={selectedStreet?.id}
-            onStreetClick={handleStreetClick}
-          />
+            <PartiallyUnsurveyedStreets
+              points={filteredPoints}
+              showPolylines={showPolylines}
+              selectedStreetId={selectedStreet?.id}
+              onStreetClick={handleStreetClick}
+            />
 
-          <MapPolylines
-            streetNames={filteredStreetNames}
-            showPolylines={showPolylines}
-            points={filteredPoints}
-            selectedStreetId={selectedStreet?.id}
-            onStreetClick={handleStreetClick}
-          />
+            <MapPolylines
+              streetNames={filteredStreetNames}
+              showPolylines={showPolylines}
+              points={filteredPoints}
+              selectedStreetId={selectedStreet?.id}
+              onStreetClick={handleStreetClick}
+            />
 
-          <MapMarkers
-            points={filteredPoints}
-            showMarkers={showMarkers}
-            zoom={zoom}
-            isPointInViewport={isPointInViewport}
-          />
-        </LeafletMap>
+            <MapMarkers
+              points={filteredPoints}
+              showMarkers={showMarkers}
+              zoom={zoom}
+              isPointInViewport={isPointInViewport}
+              onStreetClick={handleStreetClick}
+              streetNames={filteredStreetNames}
+            />
+          </LeafletMap>
+        </MapClickProvider>
 
         {/* Barangay Details Overlay */}
         {selectedBarangay && (
@@ -339,7 +399,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
               right: "20px",
               zIndex: 1000,
               background: "rgba(17, 25, 38, 0.95)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
+              border: "1px solid rgba(30, 64, 175, 0.4)",
               borderRadius: "8px",
               padding: "16px",
               minWidth: "250px",
@@ -355,7 +415,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
                 marginBottom: "12px",
               }}
             >
-              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#1e40af" }}>
                 Street Details
               </h3>
               <button
@@ -386,12 +446,8 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
                 <strong>Status:</strong>{" "}
                 <span
                   style={{
-                    color:
-                      selectedStreet.type === "surveyed"
-                        ? "#10b981"
-                        : selectedStreet.type === "partial"
-                        ? "#f59e0b"
-                        : "#6b7280",
+                    color: "#1e40af",
+                    fontWeight: "500"
                   }}
                 >
                   {selectedStreet.type === "surveyed"
