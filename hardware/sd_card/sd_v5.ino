@@ -44,20 +44,23 @@ const int stopButtonPin = 32;          // Stop logging button
 #define LED_BUILTIN 2
 
 // GPS configuration
-const unsigned long gpsTimeout = 30000; // 30 seconds timeout for initial GPS reading
+const unsigned long gpsInitialAttemptMs = 15000; // 15 seconds for initial attempt
 const unsigned long gpsMaxAgeMs = 15000;
 float defaultLat = 0.000000;
 float defaultLon = 0.000000;
 float currentLat = defaultLat;
 float currentLon = defaultLon;
 bool gpsAvailable = false;
+bool gpsEverFixed = false;
 
 // Measurement timing
 const unsigned long measurementInterval = 1000; // 1 second sampling
 const unsigned long gpsStatusInterval = 60000;   // 60 seconds status print
+const unsigned long gpsSearchLogInterval = 15000; // Log every 15s while searching
 
 unsigned long lastMeasurementTime = 0;
 unsigned long lastGPSStatus = 0;
+unsigned long lastGPSSearchLog = 0;
 bool collecting = false;
 bool gpsReady = false;
 bool readyBlinkState = false;
@@ -228,7 +231,7 @@ void showLoadingScreen() {
 		display.fillRect(0, 20, SCREEN_WIDTH, 12, SSD1306_BLACK);
 		drawLoadingBar(progress);
 		display.display();
-		delay(300);
+		delay(250);
 	}
 }
 
@@ -262,16 +265,27 @@ void renderMeasurementScreen() {
 	display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
 	display.setTextSize(1);
 	display.setTextColor(SSD1306_WHITE);
+
+	if (lastMeasurement.gpsFix) {
+		display.fillCircle(122, 4, 3, SSD1306_WHITE);
+	} else {
+		display.drawCircle(122, 4, 3, SSD1306_WHITE);
+	}
+
 	display.setCursor(5, 6);
-	display.print("Lat: ");
-	display.print(lastMeasurement.lat, 6);
-	display.setCursor(5, 15);
-	display.print("Lon: ");
-	display.print(lastMeasurement.lon, 6);
-	display.setCursor(5, 24);
-	display.print("Lux: ");
+	display.print("LUX: ");
+	display.setTextSize(2);
 	display.print(lastMeasurement.lux, 0);
-	display.print(" lx");
+
+	display.setTextSize(1);
+	display.setCursor(5, 24);
+	if (lastMeasurement.gpsFix) {
+		display.print(lastMeasurement.lat, 6);
+		display.print(", ");
+		display.print(lastMeasurement.lon, 6);
+	} else {
+		display.print("GPS: Searching...");
+	}
 	display.display();
 }
 
@@ -401,9 +415,9 @@ bool appendMeasurementToSD(const Measurement& measurement) {
 		dataFile.print(",\n");
 	}
 
-		dataFile.print("  {\"timestamp\":\"");
-		dataFile.print(measurement.timestamp);
-		dataFile.print("\"");
+	dataFile.print("  {\"timestamp\":\"");
+	dataFile.print(measurement.timestamp);
+	dataFile.print("\"");
 	dataFile.print(",\"lat\":");
 	dataFile.print(measurement.lat, 6);
 	dataFile.print(",\"lon\":");
@@ -432,7 +446,7 @@ void pollGPS() {
 	}
 
 	if (gps.location.isValid()) {
-		gpsAvailable = gps.location.age() <= gpsMaxAgeMs;   
+		gpsAvailable = gps.location.age() <= gpsMaxAgeMs;
 		if (gpsAvailable && !updated) {
 			currentLat = gps.location.lat();
 			currentLon = gps.location.lng();
@@ -453,7 +467,6 @@ bool acquireInitialGPSFix(unsigned long timeoutMs) {
 		}
 		delay(50);
 	}
-	logMessage("GPS initial fix timed out");
 	return false;
 }
 
@@ -485,24 +498,17 @@ void updateReadyIndicator(unsigned long currentTime) {
 			digitalWrite(LED_BUILTIN, LOW);
 		}
 	}
-	}
+}
 
 void handleButtons() {
 	int startState = digitalRead(startButtonPin);
 	int stopState = digitalRead(stopButtonPin);
 
 	if (startState == LOW && lastStartButtonState == HIGH) {
-		// Always allow starting, regardless of GPS status
 		if (!collecting) {
 			collecting = true;
 			lastMeasurementTime = 0; // Force immediate measurement
-			
-			if (gpsAvailable) {
-				logMessage("Logging started with GPS coordinates");
-			} else {
-				logMessage("Logging started with default coordinates");
-			}
-			
+			logMessage(gpsAvailable ? "Logging started with GPS coordinates" : "Logging started with default coordinates");
 			blinkCode(2);
 			readyBlinkState = false;
 			digitalWrite(LED_BUILTIN, LOW);
@@ -556,31 +562,20 @@ void setup() {
 		logMessage("Offline storage disabled - insert SD card");
 	}
 
-	// Initialize GPS
 	ss.begin(9600, SERIAL_8N1, 16, 17); // RX=16, TX=17 for ESP32
 	logMessage("GPS module initializing...");
 	delay(1000);
 
-	logMessage("Attempting initial GPS reading...");
-	
-	// Try up to 3 times to get GPS fix, but proceed even if unsuccessful
-	bool gpsFixed = false;
-	for (int attempts = 0; attempts < 3; attempts++) {
-		if (acquireInitialGPSFix(gpsTimeout)) {
-			logMessage("GPS initialized");
-			printGPSStatus();
-			gpsFixed = true;
-			break;
-		}
-		logMessage("GPS lock unavailable, attempt " + String(attempts + 1) + " of 3");
+	logMessage("Attempting GPS lock (15s window)...");
+	if (acquireInitialGPSFix(gpsInitialAttemptMs)) {
+		gpsEverFixed = true;
+		logMessage("GPS lock acquired");
+		printGPSStatus();
+	} else {
+		logMessage("No GPS lock yet - using default coordinates");
+		logMessage("We'll keep listening for GPS in the background");
 	}
-	
-	if (!gpsFixed) {
-		logMessage("Proceeding without GPS lock - will use default coordinates");
-		logMessage("GPS will continue trying in the background");
-	}
-	
-	// Always proceed, even without GPS
+
 	gpsReady = true;
 	lastReadyBlink = millis();
 	readyBlinkState = false;
@@ -593,6 +588,18 @@ void loop() {
 	unsigned long currentTime = millis();
 
 	pollGPS();
+
+	if (gpsAvailable && !gpsEverFixed) {
+		logMessage("GPS fix obtained during operation");
+		printGPSStatus();
+		gpsEverFixed = true;
+	}
+
+	if (!gpsAvailable && (currentTime - lastGPSSearchLog >= gpsSearchLogInterval)) {
+		lastGPSSearchLog = currentTime;
+		logMessage("GPS searching...");
+	}
+
 	handleButtons();
 	updateReadyIndicator(currentTime);
 
@@ -602,7 +609,7 @@ void loop() {
 	}
 
 	bool measurementDue = collecting &&
-												(lastMeasurementTime == 0 || (currentTime - lastMeasurementTime) >= measurementInterval);
+						(lastMeasurementTime == 0 || (currentTime - lastMeasurementTime) >= measurementInterval);
 
 	if (measurementDue) {
 		lastMeasurementTime = currentTime;
@@ -620,10 +627,11 @@ void loop() {
 			hasMeasurement = true;
 			displayDirty = true;
 			logMessage(
-				String("Saved - Lux: ") + String(lux, 2) +
-				" | Time " + measurement.timestamp +
-				" | " + (measurement.gpsFix ? "GPS" : "Default") +
-				": " + String(measurement.lat, 6) + ", " + String(measurement.lon, 6)
+				String("LUX: ") + String(lux, 1) + " lx" +
+				" | " + measurement.timestamp +
+				(measurement.gpsFix ?
+					" | GPS: " + String(measurement.lat, 6) + ", " + String(measurement.lon, 6) :
+					" | GPS: No fix")
 			);
 		} else {
 			logMessage("Failed to write measurement to SD card");

@@ -9,7 +9,7 @@ interface IlluminationDataContextType {
   refetch: () => Promise<void>;
 }
 
-const IlluminationDataContext = createContext<IlluminationDataContextType | undefined>(undefined);
+export const IlluminationDataContext = createContext<IlluminationDataContextType | undefined>(undefined);
 
 export const IlluminationDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [points, setPoints] = useState<PointData[]>([]);
@@ -22,8 +22,23 @@ export const IlluminationDataProvider: React.FC<{ children: React.ReactNode }> =
       setLoading(true);
       setError(null);
       
-      // Fetch from the deployed LIWANAG backend
-      const response = await fetch('https://liwanag-backend.onrender.com/api/v1/illumination-data-demo');
+      // Check if running in development mode to use local backend
+      const isLocalDev = window.location.hostname === 'localhost';
+      
+      // First try the v2 endpoint regardless of environment
+      let baseUrl = isLocalDev
+        ? 'http://127.0.0.1:8000/api/v1/illumination-data-demo-v2'
+        : 'https://liwanag-backend.onrender.com/api/v1/illumination-data-demo-v2';
+      
+      console.log(`🔄 Attempting to fetch data from v2 endpoint: ${baseUrl}`);
+      let response = await fetch(baseUrl);
+      
+      // If v2 endpoint fails in production, fallback to v1
+      if (!response.ok && !isLocalDev) {
+        baseUrl = 'https://liwanag-backend.onrender.com/api/v1/illumination-data-demo';
+        console.log(`⚠️ V2 endpoint not available, falling back to v1: ${baseUrl}`);
+        response = await fetch(baseUrl);
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

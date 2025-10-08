@@ -15,12 +15,22 @@ interface PartiallyUnsurveyedStreetsProps {
 }
 
 interface StreetFeature {
-  type: "Feature";
+  id: number;
+  name: string;
+  meters: number;
+  road_category?: string;
+  created_at?: string;
   geometry: {
     type: "MultiLineString";
+    crs?: {
+      type: string;
+      properties: {
+        name: string;
+      };
+    };
     coordinates: number[][][];
   };
-  properties: {
+  properties?: {
     id: number;
     name: string;
     meters: number;
@@ -29,10 +39,11 @@ interface StreetFeature {
   };
 }
 
-interface StreetsGeoJSON {
+// This can either be a GeoJSON FeatureCollection or an array of street objects
+type StreetsGeoJSON = {
   type: "FeatureCollection";
   features: StreetFeature[];
-}
+} | StreetFeature[];
 
 // Distance threshold to consider a street segment as "surveyed"
 const SURVEY_RADIUS = 25; // meters - adjust this to make detection more/less sensitive
@@ -49,11 +60,23 @@ export const PartiallyUnsurveyedStreets = ({
   useEffect(() => {
     const loadStreetsData = async () => {
       try {
-        const response = await fetch("/streets.geojson");
+        // Updated file path to match the actual file in public directory
+        const response = await fetch("/streets_v2.json");
         const data = await response.json();
         setStreetsData(data);
+        console.log("✅ Loaded streets v2 data for partially unsurveyed streets");
       } catch (error) {
         console.error("Failed to load streets data:", error);
+        // Fallback to streets.geojson if streets_v2.json fails
+        try {
+          console.log("⚠️ Attempting to load fallback streets data for partially unsurveyed streets");
+          const fallbackResponse = await fetch("/streets.geojson");
+          const fallbackData = await fallbackResponse.json();
+          setStreetsData(fallbackData);
+          console.log("✅ Loaded fallback streets data for partially unsurveyed streets");
+        } catch (fallbackError) {
+          console.error("Failed to load fallback streets data for partially unsurveyed streets:", fallbackError);
+        }
       } finally {
         setLoading(false);
       }
@@ -66,23 +89,60 @@ export const PartiallyUnsurveyedStreets = ({
     return null;
   }
 
+  // Make sure both points and streetsData are available
+  if (!points || !Array.isArray(points) || points.length === 0 || !streetsData) {
+    console.log("⚠️ Missing data for partially surveyed streets: ", {
+      hasPoints: !!points,
+      isArray: Array.isArray(points),
+      pointsLength: points ? (Array.isArray(points) ? points.length : 'not an array') : 'undefined',
+      hasStreetsData: !!streetsData
+    });
+    return null;
+  }
+
+  // Determine if we have a GeoJSON FeatureCollection or an array of street objects
+  const isGeoJSONFeatureCollection = 
+    typeof streetsData === 'object' && 
+    !Array.isArray(streetsData) && 
+    streetsData.type === 'FeatureCollection' && 
+    Array.isArray(streetsData.features);
+  
   // Get streets that have at least some illumination data (partially surveyed)
   const surveyedStreetIds = new Set(points.map((point) => point.street_id));
-  const partiallySurveyedStreets = streetsData.features.filter((street) =>
-    surveyedStreetIds.has(street.properties.id)
-  );
+  const partiallySurveyedStreets = isGeoJSONFeatureCollection
+    ? (streetsData as { features: StreetFeature[] }).features.filter((street) =>
+        surveyedStreetIds.has('properties' in street && street.properties ? street.properties.id : street.id)
+      )
+    : (streetsData as StreetFeature[]).filter((street) =>
+        surveyedStreetIds.has(street.id)
+      );
 
   // Function to check if a coordinate point is near any marker
   const isPointNearMarker = (
     coord: [number, number],
     streetId: number
   ): boolean => {
+    if (!points || !Array.isArray(points)) {
+      return false;
+    }
+    
     const streetPoints = points.filter((p) => p.street_id === streetId);
 
     for (const marker of streetPoints) {
+      // Create a point-like object that has the minimum required properties
+      const tempPoint = {
+        id: 0, // Temporary ID
+        lat: coord[1],
+        lon: coord[0],
+        lux: 0, // Not relevant for distance calculation
+        street_id: streetId,
+        barangay_id: 0, // Not relevant for distance calculation
+        sensor: "" // Not relevant for distance calculation
+      };
+      
       const distance = calculateDistance(
-        { lat: coord[1], lon: coord[0] }, // Convert [lon, lat] to {lat, lon}
-        { lat: marker.lat, lon: marker.lon }
+        tempPoint,
+        marker
       );
 
       if (distance <= SURVEY_RADIUS) {
@@ -95,7 +155,17 @@ export const PartiallyUnsurveyedStreets = ({
   // Function to create unsurveyed segments for a street
   const renderUnsurveyedSegments = (street: StreetFeature) => {
     const polylines: JSX.Element[] = [];
-    const isSelected = selectedStreetId === street.properties.id;
+    
+    // Handle both data structures
+    const streetId = 'properties' in street && street.properties 
+      ? street.properties.id 
+      : street.id;
+    
+    const streetName = 'properties' in street && street.properties 
+      ? street.properties.name 
+      : street.name;
+      
+    const isSelected = selectedStreetId === streetId;
 
     // Use primary blue color for highlighting selected streets
     const highlightColor = "#1e40af";
@@ -109,11 +179,11 @@ export const PartiallyUnsurveyedStreets = ({
         // Check if both points of this segment are far from any markers
         const point1NearMarker = isPointNearMarker(
           [coord1[0], coord1[1]],
-          street.properties.id
+          streetId as number
         );
         const point2NearMarker = isPointNearMarker(
           [coord2[0], coord2[1]],
-          street.properties.id
+          streetId as number
         );
 
         // If neither point is near a marker, this segment is unsurveyed
@@ -122,7 +192,7 @@ export const PartiallyUnsurveyedStreets = ({
           if (isSelected) {
             polylines.push(
               <Polyline
-                key={`partial-unsurveyed-highlight-${street.properties.id}-${lineIndex}-${i}`}
+                key={`partial-unsurveyed-highlight-${streetId}-${lineIndex}-${i}`}
                 positions={[
                   [coord1[1], coord1[0]], // Convert [lon, lat] to [lat, lon]
                   [coord2[1], coord2[0]],
@@ -138,7 +208,7 @@ export const PartiallyUnsurveyedStreets = ({
 
           polylines.push(
             <Polyline
-              key={`partial-unsurveyed-${street.properties.id}-${lineIndex}-${i}`}
+              key={`partial-unsurveyed-${streetId}-${lineIndex}-${i}`}
               positions={[
                 [coord1[1], coord1[0]], // Convert [lon, lat] to [lat, lon]
                 [coord2[1], coord2[0]],
@@ -152,8 +222,8 @@ export const PartiallyUnsurveyedStreets = ({
                   // Stop event propagation to prevent barangay selection
                   e.originalEvent.stopPropagation();
                   onStreetClick(
-                    street.properties.id,
-                    street.properties.name,
+                    streetId as number,
+                    streetName as string,
                     "partial"
                   );
                 },
@@ -170,13 +240,20 @@ export const PartiallyUnsurveyedStreets = ({
 
   return (
     <>
-      {partiallySurveyedStreets.map((street) => (
-        <React.Fragment
-          key={`partial-unsurveyed-street-${street.properties.id}`}
-        >
-          {renderUnsurveyedSegments(street)}
-        </React.Fragment>
-      ))}
+      {partiallySurveyedStreets.map((street) => {
+        // Handle both data structures
+        const streetId = 'properties' in street && street.properties 
+          ? street.properties.id 
+          : street.id;
+          
+        return (
+          <React.Fragment
+            key={`partial-unsurveyed-street-${streetId}`}
+          >
+            {renderUnsurveyedSegments(street)}
+          </React.Fragment>
+        );
+      })}
     </>
   );
 };

@@ -14,24 +14,28 @@ interface UnsurveyedStreetsProps {
 }
 
 interface StreetFeature {
-  type: "Feature";
+  id: number;
+  name: string;
+  meters: number;
+  road_category?: string;
+  created_at?: string;
   geometry: {
     type: "MultiLineString";
+    crs?: {
+      type: string;
+      properties: {
+        name: string;
+      };
+    };
     coordinates: number[][][];
-  };
-  properties: {
-    id: number;
-    name: string;
-    meters: number;
-    road_category: string;
-    created_at: string;
   };
 }
 
-interface StreetsGeoJSON {
+// This can either be a GeoJSON FeatureCollection or an array of street objects
+type StreetsGeoJSON = {
   type: "FeatureCollection";
   features: StreetFeature[];
-}
+} | StreetFeature[];
 
 export const UnsurveyedStreets = ({
   points,
@@ -45,11 +49,23 @@ export const UnsurveyedStreets = ({
   useEffect(() => {
     const loadStreetsData = async () => {
       try {
-        const response = await fetch("/streets.geojson");
+        // Updated file path to match the actual file in public directory
+        const response = await fetch("/streets_v2.json");
         const data = await response.json();
         setStreetsData(data);
+        console.log("✅ Loaded streets v2 data");
       } catch (error) {
-        console.error("Failed to load streets data:", error);
+        console.error("Failed to load streets v2 data:", error);
+        // Fallback to streets.geojson if streets_v2.json fails
+        try {
+          console.log("⚠️ Attempting to load fallback streets data");
+          const fallbackResponse = await fetch("/streets.geojson");
+          const fallbackData = await fallbackResponse.json();
+          setStreetsData(fallbackData);
+          console.log("✅ Loaded fallback streets data");
+        } catch (fallbackError) {
+          console.error("Failed to load fallback streets data:", fallbackError);
+        }
       } finally {
         setLoading(false);
       }
@@ -62,18 +78,43 @@ export const UnsurveyedStreets = ({
     return null;
   }
 
+  // Make sure both points and streetsData are available
+  if (!points || !Array.isArray(points) || points.length === 0 || !streetsData) {
+    console.log("⚠️ Missing data for unsurveyed streets: ", {
+      hasPoints: !!points,
+      isArray: Array.isArray(points),
+      pointsLength: points ? (Array.isArray(points) ? points.length : 'not an array') : 'undefined',
+      hasStreetsData: !!streetsData
+    });
+    return null;
+  }
+
   // Get all street IDs that have illumination data
   const surveyedStreetIds = new Set(points.map((point) => point.street_id));
 
+  // Determine if we have a GeoJSON FeatureCollection or an array of street objects
+  const isGeoJSONFeatureCollection = 
+    typeof streetsData === 'object' && 
+    !Array.isArray(streetsData) && 
+    streetsData.type === 'FeatureCollection' && 
+    Array.isArray(streetsData.features);
+  
   // Filter streets that don't have any illumination data
-  const unsurveyedStreets = streetsData.features.filter(
-    (street) => !surveyedStreetIds.has(street.properties.id)
-  );
+  const unsurveyedStreets = isGeoJSONFeatureCollection
+    ? (streetsData as { features: StreetFeature[] }).features.filter(
+        (street) => !surveyedStreetIds.has(street.properties?.id ?? street.id)
+      )
+    : (streetsData as StreetFeature[]).filter(
+        (street) => !surveyedStreetIds.has(street.id)
+      );
 
   // Convert MultiLineString coordinates to Leaflet polyline format
   const renderUnsurveyedStreet = (street: StreetFeature) => {
     const polylines: JSX.Element[] = [];
-    const isSelected = selectedStreetId === street.properties.id;
+    // Handle both data structures
+    const streetId = 'properties' in street ? street.properties?.id : street.id;
+    const streetName = 'properties' in street ? street.properties?.name : street.name;
+    const isSelected = selectedStreetId === streetId;
 
     street.geometry.coordinates.forEach((lineString, lineIndex) => {
       // Convert coordinates from [lon, lat] to [lat, lon] for Leaflet
@@ -85,7 +126,7 @@ export const UnsurveyedStreets = ({
       if (isSelected) {
         polylines.push(
           <Polyline
-            key={`unsurveyed-border-${street.properties.id}-${lineIndex}`}
+            key={`unsurveyed-border-${streetId}-${lineIndex}`}
             positions={positions}
             color="#1e40af" // Primary blue border for unsurveyed streets when selected
             weight={6} // Thicker for border
@@ -98,7 +139,7 @@ export const UnsurveyedStreets = ({
 
       polylines.push(
         <Polyline
-          key={`unsurveyed-${street.properties.id}-${lineIndex}`}
+          key={`unsurveyed-${streetId}-${lineIndex}`}
           positions={positions}
           color="#353f52" // 🎨 Keep original dark gray color
           weight={2} // 📏 Keep original thickness
@@ -109,8 +150,8 @@ export const UnsurveyedStreets = ({
               // Stop event propagation to prevent barangay selection
               e.originalEvent.stopPropagation();
               onStreetClick(
-                street.properties.id,
-                street.properties.name,
+                streetId as number,
+                streetName as string,
                 "unsurveyed"
               );
             },
@@ -124,11 +165,15 @@ export const UnsurveyedStreets = ({
 
   return (
     <>
-      {unsurveyedStreets.map((street) => (
-        <React.Fragment key={`unsurveyed-street-${street.properties.id}`}>
-          {renderUnsurveyedStreet(street)}
-        </React.Fragment>
-      ))}
+      {unsurveyedStreets.map((street) => {
+        // Handle both data structures
+        const streetId = 'properties' in street ? street.properties?.id : street.id;
+        return (
+          <React.Fragment key={`unsurveyed-street-${streetId}`}>
+            {renderUnsurveyedStreet(street)}
+          </React.Fragment>
+        );
+      })}
     </>
   );
 };
