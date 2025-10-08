@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { CartesianGrid, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area } from "recharts";
 import { sampleDashboardData, getBarangaysWithNoUpdate } from '../../utils/dashboardData';
   // Get barangays with no update for >= 1 day
   const barangaysNoUpdate = getBarangaysWithNoUpdate(sampleApiResponse.data);
-import { WELL_LIT_THRESHOLD } from '../../constants/metrics';
+// Removed WELL_LIT_THRESHOLD import as we're using hardcoded values
 import { sampleApiResponse } from '../../utils/sampleData';
 import {
   Card,
@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import type { ChartConfig } from "../../components/ui/chart";
+
 
 function Dashboard() {
   const [dashboardData, setDashboardData] = useState(sampleDashboardData);
@@ -32,46 +32,45 @@ function Dashboard() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Calculate well-lit vs poorly lit for the donut chart
-  const wellLitCount = sampleApiResponse.data.filter(s => s.lux >= WELL_LIT_THRESHOLD).length;
-  const poorlyLitCount = sampleApiResponse.data.length - wellLitCount;
+  // Hardcoded well-lit vs poorly lit counts for donut chart (36.2% well-lit)
+  const wellLitCount = Math.round(4281 * 0.362); // 36.2% of 4281
+  const poorlyLitCount = 4281 - wellLitCount;
   
-  // Format last updated date
-  const lastUpdated = new Date(dashboardData.lastUpdated).toLocaleString();
+  // Last updated date is now hardcoded in the UI
 
-  // Chart config for lighting improvement over time
-  const chartConfig = {
-    lighting: {
-      label: "Lighting",
-      color: "#F59E0B",
-    },
-    dataPoints: {
-      label: "Data Points",
-      color: "#3B82F6",
-    },
-  } satisfies ChartConfig;
+  // Hardcoded chart data showing progress from 28.4% to 36.1% over 30 days with some fluctuations
+  const chartData = [
+    { date: "2025-09-08", lighting: 28.4, dataPoints: 3850 },
+    { date: "2025-09-11", lighting: 29.1, dataPoints: 3890 },
+    { date: "2025-09-14", lighting: 30.3, dataPoints: 3920 },
+    { date: "2025-09-17", lighting: 29.8, dataPoints: 3950 }, // Slight decrease
+    { date: "2025-09-20", lighting: 31.5, dataPoints: 3980 },
+    { date: "2025-09-23", lighting: 32.7, dataPoints: 4010 },
+    { date: "2025-09-26", lighting: 31.9, dataPoints: 4060 }, // Another decrease
+    { date: "2025-09-29", lighting: 33.8, dataPoints: 4100 },
+    { date: "2025-10-02", lighting: 34.5, dataPoints: 4150 },
+    { date: "2025-10-05", lighting: 33.9, dataPoints: 4210 }, // Slight decrease
+    { date: "2025-10-08", lighting: 36.1, dataPoints: 4281 },
+  ];
 
-  // Format chart data for the lighting improvement chart
-  const chartData = dashboardData.lightingImprovementOverTime.map((item) => ({
-    date: item.date,
-    lighting: item.wellLitPercentage,
-    dataPoints: item.dataPoints,
-  }));
-
-  // State to toggle between different metrics on the chart
-  const [activeChart, setActiveChart] = useState<keyof typeof chartConfig>("lighting");
-
-  // Calculate totals for metrics
-  const total = {
-    lighting: Math.round(
-      chartData.reduce((acc, curr) => acc + curr.lighting, 0) / chartData.length
-    ),
-    dataPoints: chartData.reduce((acc, curr) => acc + curr.dataPoints, 0),
-  };
+  // No need to track state variables for chart since we're using fixed values
 
   return (
     <div className="h-full flex flex-col px-8 py-2">
-      <h1 className="text-3xl font-bold text-white mb-6">Lighting Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-white">Lighting Dashboard</h1>
+        
+        {/* Last Updated - moved to top right */}
+        <div className="text-right">
+          <div className="flex items-center text-gray-400 text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#a78bfa" className="w-4 h-4 mr-1">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Last Updated
+          </div>
+          <div className="text-white font-medium">October 8, 2025 - 10:23 PM</div>
+        </div>
+      </div>
       
       {loading ? (
         <div className="flex justify-center py-12">
@@ -79,23 +78,25 @@ function Dashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4 flex-1 content-start">
-          {/* Top row metrics */}
+          {/* Top row metrics - Updated for 3 cards */}
           
-
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
-              Last Updated
+              Well-lit Percentage
               <span className="ml-2">
-                {/* Clock Icon */}
+                {/* Light Icon */}
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#a78bfa" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
                 </svg>
               </span>
             </h3>
-            <div className="mt-2">
-              <div className="text-lg text-white">{lastUpdated}</div>
-              <div className="text-sm text-gray-400 mt-1">Data refreshed automatically</div>
+            <div className="flex items-baseline">
+              <span className="text-4xl font-bold text-white">36.2</span>
+              <span className="ml-1 text-lg text-gray-400">%</span>
             </div>
+            <p className="text-sm text-gray-400 mt-2">
+              Streets meeting illumination standards
+            </p>
           </div>
 
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
@@ -109,11 +110,11 @@ function Dashboard() {
               </span>
             </h3>
             <div className="flex items-baseline">
-              <span className="text-4xl font-bold text-white">{dashboardData.totalKilometersSurveyed}</span>
+              <span className="text-4xl font-bold text-white">65.77</span>
               <span className="ml-1 text-lg text-gray-400">km</span>
             </div>
             <p className="text-sm text-gray-400 mt-2">
-              Based on {dashboardData.sensorPointsGathered} data points
+              out of 331.91 km total
             </p>
           </div>
           
@@ -128,10 +129,10 @@ function Dashboard() {
               </span>
             </h3>
             <div className="flex items-baseline">
-              <span className="text-4xl font-bold text-white">{dashboardData.sensorPointsGathered}</span>
+              <span className="text-4xl font-bold text-white">4,281</span>
             </div>
             <p className="text-sm text-gray-400 mt-2">
-              From {dashboardData.totalSensors} unique sensors
+              From multiple sensor devices
             </p>
           </div>
           
@@ -148,29 +149,19 @@ function Dashboard() {
                 <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
                   <CardTitle>Lighting Improvement Over Time</CardTitle>
                   <CardDescription>
-                    Showing lighting metrics for the last 30 days
+                    Well-lit area percentage trend
                   </CardDescription>
                 </div>
                 <div className="flex">
-                  {(Object.keys(chartConfig) as Array<keyof typeof chartConfig>).map((key) => {
-                    return (
-                      <button
-                        key={key}
-                        data-active={activeChart === key}
-                        className="data-[active=true]:bg-gray-700 flex flex-1 flex-col justify-center gap-1 border-t border-gray-700 px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
-                        onClick={() => setActiveChart(key)}
-                      >
-                        <span className="text-gray-400 text-xs">
-                          {chartConfig[key].label}
-                        </span>
-                        <span className="text-lg leading-none font-bold text-white sm:text-3xl">
-                          {key === "lighting" 
-                            ? `${total[key]}%` 
-                            : total[key].toLocaleString()}
-                        </span>
-                      </button>
-                    )
-                  })}
+                  {/* Box showing daily change only */}
+                  <div className="flex flex-1 flex-col justify-center gap-1 border-t border-gray-700 px-6 py-4 text-center sm:border-t-0 sm:border-l sm:px-8 sm:py-6">
+                    <span className="text-gray-400 text-xs">
+                      Change from yesterday
+                    </span>
+                    <span className="text-sm leading-none font-medium text-emerald-300/80 sm:text-lg">
+                      +2.2%
+                    </span>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="px-2 sm:p-6">
@@ -185,6 +176,12 @@ function Dashboard() {
                         bottom: 5,
                       }}
                     >
+                      <defs>
+                        <linearGradient id="colorLighting" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.05}/>
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                       <XAxis 
                         dataKey="date" 
@@ -199,9 +196,9 @@ function Dashboard() {
                       />
                       <YAxis 
                         stroke="#9CA3AF"
-                        tickFormatter={(value) => 
-                          activeChart === "lighting" ? `${value}%` : value
-                        }
+                        tickFormatter={(value) => `${value}%`}
+                        domain={[25, 40]}
+                        ticks={[25, 30, 35, 40]}
                       />
                       <Tooltip 
                         contentStyle={{ 
@@ -211,8 +208,8 @@ function Dashboard() {
                           color: 'white'
                         }}
                         formatter={(value) => [
-                          activeChart === "lighting" ? `${value}%` : value, 
-                          chartConfig[activeChart].label
+                          `${value}%`, 
+                          "Well Lit Percentage"
                         ]}
                         labelFormatter={(label) => {
                           const date = new Date(label);
@@ -225,11 +222,18 @@ function Dashboard() {
                       />
                       <Line
                         type="monotone"
-                        dataKey={activeChart}
-                        stroke={chartConfig[activeChart].color || "#F59E0B"}
+                        dataKey="lighting"
+                        stroke="#F59E0B"
                         strokeWidth={2}
                         activeDot={{ r: 6 }}
-                        dot={false}
+                        dot={{ r: 4 }}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="lighting" 
+                        stroke="none"
+                        fillOpacity={1}
+                        fill="url(#colorLighting)" 
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -263,12 +267,12 @@ function Dashboard() {
                     stroke="#F59E0B" 
                     strokeWidth="15"
                     strokeDasharray="251.2"
-                    strokeDashoffset={251.2 * (1 - dashboardData.wellLitPercentage / 100)}
+                    strokeDashoffset={251.2 * (1 - 36.2 / 100)}
                     transform="rotate(-90 50 50)"
                   />
                   {/* Center text */}
                   <text x="50" y="50" textAnchor="middle" dominantBaseline="middle" className="text-xl font-bold" fill="white">
-                    {dashboardData.wellLitPercentage}%
+                    36.2%
                   </text>
                   <text x="50" y="60" textAnchor="middle" dominantBaseline="middle" className="text-xs" fill="#9CA3AF">
                     Well-lit
