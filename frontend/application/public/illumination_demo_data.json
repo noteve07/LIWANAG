@@ -1,0 +1,114 @@
+{
+    "data": [
+        {
+            "id": 1,
+            "lat": 14.6646301,
+            "lon": 120.5433738,
+            "lux": 15.5,
+            "street_id": 1,
+            "barangay_id": 1,
+            "sensor": "ESP32-CAM",
+            "created_at": "2023-10-15T08:00:00",
+            "road_type": "residential"
+        },
+        {
+            "id": 2,
+            "lat": 14.6645991,
+            "lon": 120.5431387,
+            "lux": 12.3,
+            "street_id": 1,
+            "barangay_id": 1,
+            "sensor": "ESP32-CAM",
+            "created_at": "2023-10-15T08:01:00",
+            "road_type": "residential"
+        },
+        {
+            "id": 3,
+            "lat": 14.6642661,
+            "lon": 120.5427899,
+            "lux": 8.7,
+            "street_id": 2,
+            "barangay_id": 1,
+            "sensor": "ESP32-CAM",
+            "created_at": "2023-10-15T08:02:00",
+            "road_type": "residential"
+        },
+        {
+            "id": 4,
+            "lat": 14.6660004,
+            "lon": 120.5433120,
+            "lux": 21.8,
+            "street_id": 3,
+            "barangay_id": 2,
+            "sensor": "ESP32-CAM",
+            "created_at": "2023-10-15T08:03:00",
+            "road_type": "main_road"
+        },
+        {
+            "id": 5,
+            "lat": 14.6672231,
+            "lon": 120.5445001,
+            "lux": 35.6,
+            "street_id": 4,
+            "barangay_id": 2,
+            "sensor": "ESP32-CAM",
+            "created_at": "2023-10-15T08:04:00",
+            "road_type": "main_road"
+        },
+        {
+            "id": 6,
+            "lat": 14.6680120,
+            "lon": 120.5450032,
+            "lux": 45.2,
+            "street_id": 5,
+            "barangay_id": 3,
+            "sensor": "ESP32-CAM",
+            "created_at": "2023-10-15T08:05:00",
+            "road_type": "highway"
+        },
+        {
+            "id": 7,
+            "lat": 14.6692333,
+            "lon": 120.5462111,
+            "lux": 58.9,
+            "street_id": 5,
+            "barangay_id": 3,
+            "sensor": "ESP32-CAM",
+            "created_at": "2023-10-15T08:06:00",
+            "road_type": "highway"
+        },
+        {
+            "id": 8,
+            "lat": 14.6650123,
+            "lon": 120.5440321,
+            "lux": 17.3,
+            "street_id": 3,
+            "barangay_id": 2,
+            "sensor": "ESP32-CAM",
+            "created_at": "2023-10-15T08:07:00",
+            "road_type": "main_road"
+        },
+        {
+            "id": 9,
+            "lat": 14.6640001,
+            "lon": 120.5430002,
+            "lux": 9.8,
+            "street_id": 2,
+            "barangay_id": 1,
+            "sensor": "ESP32-CAM",
+            "created_at": "2023-10-15T08:08:00",
+            "road_type": "residential"
+        },
+        {
+            "id": 10,
+            "lat": 14.6644532,
+            "lon": 120.5429923,
+            "lux": 14.2,
+            "street_id": 2,
+            "barangay_id": 1,
+            "sensor": "ESP32-CAM",
+            "created_at": "2023-10-15T08:09:00",
+            "road_type": "residential"
+        }
+    ]
+}

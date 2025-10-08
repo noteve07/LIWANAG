@@ -7,6 +7,7 @@ export interface PointData {
   barangay_id: number;
   sensor: string;
   created_at?: string;
+  road_type?: 'residential' | 'main_road' | 'highway'; // Added road type
 }
 
 export interface MapVisualizationProps {
