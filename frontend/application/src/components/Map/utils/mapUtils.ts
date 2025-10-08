@@ -15,9 +15,28 @@ export const getLuxColor = (lux: number): string => {
   return "#00B248"; // Optimal - Deep Green (22.5-25)
 };
 
+// Utility function to get color based on classification
+export const getClassificationColor = (classification?: string): string => {
+  if (!classification) return "#00C851"; // Default to green if no classification
+  
+  switch (classification.toLowerCase()) {
+    case 'critical':
+      return "#FF0000"; // Deep Red for critical areas
+    case 'low_lower':
+      return "#FF8800"; // Orange for low_lower areas
+    case 'low_upper':
+      return "#FFBB33"; // Light orange for low_upper areas
+    case 'high':
+      return "#00C851"; // Green for high areas
+    default:
+      return "#00C851"; // Default to green
+  }
+};
+
 // Create marker icon with custom color (zoom-responsive size)
-export const createLightIcon = (lux: number, zoom: number) => {
-  const color = getLuxColor(lux);
+export const createLightIcon = (lux: number, zoom: number, classification?: string) => {
+  // Use classification color if available, otherwise fall back to lux color
+  const color = classification ? getClassificationColor(classification) : getLuxColor(lux);
   
   // Calculate size based on zoom level
   // Zoom 17: 40% smaller (60% of original)

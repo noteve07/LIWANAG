@@ -13,8 +13,22 @@ export const useIlluminationData = () => {
         setLoading(true);
         setError(null);
         
-        // Fetch from the new illumination-data-demo endpoint
-        const response = await fetch('http://127.0.0.1:8000/api/v1/illumination-data-demo');
+        // Try v2 endpoint first, fall back to v1 if it fails
+        let url = 'http://127.0.0.1:8000/api/v1/illumination-data-demo-v2';
+        console.log(`Trying to fetch from: ${url}`);
+        
+        try {
+          const v2Response = await fetch(url);
+          if (!v2Response.ok) {
+            console.log(`V2 endpoint failed with status ${v2Response.status}, trying v1 endpoint...`);
+            url = 'http://127.0.0.1:8000/api/v1/illumination-data-demo';
+          }
+        } catch (e) {
+          console.log(`Error with v2 endpoint: ${e}, trying v1 endpoint...`);
+          url = 'http://127.0.0.1:8000/api/v1/illumination-data-demo';
+        }
+        
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

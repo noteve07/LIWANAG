@@ -20,10 +20,27 @@ export const BarangayClickHandler = ({
   useEffect(() => {
     const loadBarangaysData = async () => {
       try {
-        const response = await fetch('/barangays.json');
-        const data = await response.json();
-        setBarangaysData(data);
-        console.log(`🏘️ Loaded ${data.length} barangays`);
+        const response = await fetch('/barangays_v2.json');
+        const geoJson = await response.json();
+        
+        // Convert GeoJSON features to the BarangayData format
+        const processedData = geoJson.features.map((feature: any) => ({
+          id: feature.properties.id || feature.id || 0,
+          name: feature.properties.name || feature.properties.barangay || '',
+          boundary: {
+            type: feature.geometry.type === 'MultiPolygon' ? 'MultiPolygon' : 'Polygon',
+            crs: {
+              type: "name",
+              properties: {
+                name: "EPSG:4326"
+              }
+            },
+            coordinates: feature.geometry.coordinates
+          }
+        }));
+        
+        setBarangaysData(processedData);
+        console.log(`🏘️ Loaded ${processedData.length} barangays from GeoJSON`);
       } catch (error) {
         console.error('Failed to load barangays data:', error);
       } finally {

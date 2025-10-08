@@ -21,7 +21,7 @@ import RootLayout from './RouteLayout/RootLayout';
 import AnalyticsLayout from './RouteLayout/AnalyticsLayout';
 import Error404 from './Pages/Error404';
 import LoadingScreen from './components/LoadingScreen';
-import { IlluminationDataProvider } from './contexts/IlluminationDataContext';
+import { IlluminationDataProvider } from './contexts/illumination-data/provider';
 import LandingPage from './Pages/Landing/LandingPage';
 import LoginPage from './Pages/Auth/LoginPage';
 
