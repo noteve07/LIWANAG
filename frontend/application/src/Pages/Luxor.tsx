@@ -118,7 +118,7 @@ function Luxor() {
                   <User size={22} className="text-white" />
                 )}
               </div>
-              
+              25125213653246346346432
               {/* Message */}
               <div className={`px-6 py-4 ${
                 message.type === 'bot'
