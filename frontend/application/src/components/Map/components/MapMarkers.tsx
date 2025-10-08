@@ -79,7 +79,7 @@ export const MapMarkers = ({
         <Marker
           key={pt.id}
           position={[pt.lat, pt.lon]}
-          icon={createLightIcon(pt.lux, zoom)}
+          icon={createLightIcon(pt.lux, zoom, pt.classification)}
           eventHandlers={{
             click: () => {
               handleMarkerClick(pt);
@@ -93,7 +93,9 @@ export const MapMarkers = ({
             opacity={0.9}
             className="custom-tooltip"
           >
-            <span style={{ color: getLuxColor(pt.lux), fontWeight: "500" }}>{pt.lux} lx</span>
+            <span style={{ color: getLuxColor(pt.lux), fontWeight: "500" }}>
+              {pt.lux} lx {pt.classification ? `(${pt.classification})` : ''}
+            </span>
           </Tooltip>
           <Popup className="modern-popup">
             <div
@@ -126,11 +128,22 @@ export const MapMarkers = ({
                 <div style={{ fontSize: "28px", fontWeight: "600", color: getLuxColor(pt.lux) }}>
                   {pt.lux} lx
                 </div>
+                {pt.classification && (
+                  <div style={{ fontSize: "14px", fontWeight: "500", color: getLuxColor(pt.lux) }}>
+                    {pt.classification.replace('_', ' ')}
+                  </div>
+                )}
               </div>
               
               <div style={{ fontSize: "12px", marginBottom: "4px", color: "#9ca3af" }}>
                 <span style={{ color: getLuxColor(pt.lux), fontWeight: "500" }}>Location:</span> {pt.lat.toFixed(6)}, {pt.lon.toFixed(6)}
               </div>
+              
+              {pt.road_type && (
+                <div style={{ fontSize: "12px", marginBottom: "4px", color: "#9ca3af" }}>
+                  <span style={{ color: getLuxColor(pt.lux), fontWeight: "500" }}>Road Type:</span> {pt.road_type.replace('_', ' ')}
+                </div>
+              )}
               
               {pt.created_at && (
                 <div style={{ fontSize: "12px", color: "#9ca3af" }}>

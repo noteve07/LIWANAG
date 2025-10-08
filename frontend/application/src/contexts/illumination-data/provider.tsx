@@ -1,15 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { PointData } from '../components/Map/types/mapTypes';
-
-interface IlluminationDataContextType {
-  points: PointData[];
-  streetNames: string[];
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
-
-export const IlluminationDataContext = createContext<IlluminationDataContextType | undefined>(undefined);
+import React, { useEffect, useState } from 'react';
+import { IlluminationDataContext } from './context';
+import type { PointData } from '../../components/Map/types/mapTypes';
 
 export const IlluminationDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [points, setPoints] = useState<PointData[]>([]);
@@ -91,12 +82,4 @@ export const IlluminationDataProvider: React.FC<{ children: React.ReactNode }> =
       {children}
     </IlluminationDataContext.Provider>
   );
-};
-
-export const useIlluminationData = () => {
-  const context = useContext(IlluminationDataContext);
-  if (context === undefined) {
-    throw new Error('useIlluminationData must be used within an IlluminationDataProvider');
-  }
-  return context;
 };
