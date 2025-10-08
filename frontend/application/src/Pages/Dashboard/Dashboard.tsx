@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { CartesianGrid, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area } from "recharts";
 import { sampleDashboardData, getBarangaysWithNoUpdate } from '../../utils/dashboardData';
-  // Get barangays with no update for >= 1 day
-  const barangaysNoUpdate = getBarangaysWithNoUpdate(sampleApiResponse.data);
-// Removed WELL_LIT_THRESHOLD import as we're using hardcoded values
 import { sampleApiResponse } from '../../utils/sampleData';
+import { DonutChart } from '../../components/ui/donut-chart';
 import {
   Card,
   CardContent,
@@ -12,6 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+
+// Get barangays with no update for >= 1 day
+const barangaysNoUpdate = getBarangaysWithNoUpdate(sampleApiResponse.data);
 
 
 function Dashboard() {
@@ -32,9 +33,12 @@ function Dashboard() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Hardcoded well-lit vs poorly lit counts for donut chart (36.2% well-lit)
-  const wellLitCount = Math.round(4281 * 0.362); // 36.2% of 4281
-  const poorlyLitCount = 4281 - wellLitCount;
+  // Donut chart data with illumination categories
+  const illuminationData = [
+    { name: 'Critical', value: 20.2, color: '#EF4444' },  // Red
+    { name: 'Low', value: 43.7, color: '#F59E0B' },       // Amber
+    { name: 'High', value: 36.1, color: '#10B981' }       // Green
+  ];
   
   // Last updated date is now hardcoded in the UI
 
@@ -244,7 +248,7 @@ function Dashboard() {
           
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
-              Well-Lit vs Poorly Lit Areas
+              Street Illumination Status
               <span className="ml-2">
                 {/* Light Bulb Icon */}
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#fde68a" className="w-5 h-5">
@@ -253,47 +257,35 @@ function Dashboard() {
               </span>
             </h3>
             <div className="mt-4 flex justify-center">
-              {/* Donut chart would go here, using placeholder for now */}
-              <div className="relative w-48 h-48">
-                <svg viewBox="0 0 100 100" className="w-full h-full">
-                  {/* Background circle */}
-                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#374151" strokeWidth="15" />
-                  {/* Calculate the stroke dasharray and dashoffset for the percentage */}
-                  <circle 
-                    cx="50" 
-                    cy="50" 
-                    r="40" 
-                    fill="transparent" 
-                    stroke="#F59E0B" 
-                    strokeWidth="15"
-                    strokeDasharray="251.2"
-                    strokeDashoffset={251.2 * (1 - 36.2 / 100)}
-                    transform="rotate(-90 50 50)"
-                  />
-                  {/* Center text */}
-                  <text x="50" y="50" textAnchor="middle" dominantBaseline="middle" className="text-xl font-bold" fill="white">
-                    36.2%
-                  </text>
-                  <text x="50" y="60" textAnchor="middle" dominantBaseline="middle" className="text-xs" fill="#9CA3AF">
-                    Well-lit
-                  </text>
-                </svg>
+              <div className="h-64 w-64">
+                <DonutChart 
+                  data={illuminationData}
+                  innerRadius={50}
+                  outerRadius={80}
+                />
               </div>
             </div>
             <div className="mt-4 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <span className="w-3 h-3 rounded-full bg-amber-500 mr-2"></span>
-                  <span className="text-sm text-gray-300">Well-lit</span>
+                  <span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+                  <span className="text-sm text-gray-300">High</span>
                 </div>
-                <span className="text-sm text-white">{wellLitCount} points</span>
+                <span className="text-sm text-white">36.1%</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <span className="w-3 h-3 rounded-full bg-gray-600 mr-2"></span>
-                  <span className="text-sm text-gray-300">Poorly lit</span>
+                  <span className="w-3 h-3 rounded-full bg-amber-500 mr-2"></span>
+                  <span className="text-sm text-gray-300">Low</span>
                 </div>
-                <span className="text-sm text-white">{poorlyLitCount} points</span>
+                <span className="text-sm text-white">43.7%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <span className="w-3 h-3 rounded-full bg-red-500 mr-2"></span>
+                  <span className="text-sm text-gray-300">Critical</span>
+                </div>
+                <span className="text-sm text-white">20.2%</span>
               </div>
             </div>
           </div>
