@@ -164,22 +164,30 @@ export const MapMarkers = ({
                         fontWeight: "600",
                         color: (() => {
                           // Calculate street average lux
-                          const streetPoints = points.filter(p => p.street_id === pt.street_id);
-                          const avgLux = streetPoints.length 
-                            ? streetPoints.reduce((sum, p) => sum + p.lux, 0) / streetPoints.length
+                          const streetPoints = points.filter(
+                            (p) => p.street_id === pt.street_id
+                          );
+                          const avgLux = streetPoints.length
+                            ? streetPoints.reduce((sum, p) => sum + p.lux, 0) /
+                              streetPoints.length
                             : 0;
                           return getLuxColor(
                             avgLux,
-                            pt.road_type ? (pt.road_type as RoadType) : RoadType.RESIDENTIAL
+                            pt.road_type
+                              ? (pt.road_type as RoadType)
+                              : RoadType.RESIDENTIAL
                           );
                         })(),
                       }}
                     >
                       {(() => {
                         // Calculate street average lux
-                        const streetPoints = points.filter(p => p.street_id === pt.street_id);
-                        const avgLux = streetPoints.length 
-                          ? streetPoints.reduce((sum, p) => sum + p.lux, 0) / streetPoints.length
+                        const streetPoints = points.filter(
+                          (p) => p.street_id === pt.street_id
+                        );
+                        const avgLux = streetPoints.length
+                          ? streetPoints.reduce((sum, p) => sum + p.lux, 0) /
+                            streetPoints.length
                           : 0;
                         return `${avgLux.toFixed(1)} lx`;
                       })()}
