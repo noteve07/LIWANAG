@@ -56,6 +56,16 @@
             display: inline-block;
         }
         
+        .road-controls {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ccc;
+        }
+        
+        .road-type-item {
+            margin-bottom: 5px;
+        }
+        
         .street-highlight {
             stroke: #ff7800;
             stroke-width: 5;
@@ -116,13 +126,33 @@
             <div>Barangay Boundary</div>
         </div>
         <div class="legend-item">
-            <div class="legend-color" style="background-color: #ff7800; height: 3px;"></div>
-            <div>Street</div>
+            <div class="legend-color" style="background-color: #E53935; height: 3px;"></div>
+            <div>Highway</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #FF9800; height: 3px;"></div>
+            <div>Main Road</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #43A047; height: 3px;"></div>
+            <div>Residential Road</div>
         </div>
     </div>
     <div class="controls">
         <label><input type="checkbox" id="toggle-barangays" checked> Show Barangays</label><br>
-        <label><input type="checkbox" id="toggle-streets" checked> Show Streets</label>
+        <label><input type="checkbox" id="toggle-streets" checked> Show All Streets</label>
+        
+        <div class="road-controls">
+            <div class="road-type-item">
+                <label><input type="checkbox" id="toggle-highway" checked> Show Highways</label>
+            </div>
+            <div class="road-type-item">
+                <label><input type="checkbox" id="toggle-main-road" checked> Show Main Roads</label>
+            </div>
+            <div class="road-type-item">
+                <label><input type="checkbox" id="toggle-residential" checked> Show Residential</label>
+            </div>
+        </div>
     </div>
 
     <!-- Leaflet JS -->
@@ -141,7 +171,18 @@
         // Store layers for toggling
         const layerGroups = {
             barangays: L.layerGroup().addTo(map),
-            streets: L.layerGroup().addTo(map)
+            streets: L.layerGroup().addTo(map),
+            highway: L.layerGroup().addTo(map),
+            main_road: L.layerGroup().addTo(map),  // Changed to match the determineRoadType return value
+            residential: L.layerGroup().addTo(map)
+        };
+        
+        // Road type colors
+        const roadColors = {
+            highway: '#E53935',      // Red
+            main_road: '#FF9800',    // Orange
+            residential: '#43A047',  // Green
+            default: '#FF7800'       // Original orange
         };
 
         // Variables to store selected features
@@ -168,6 +209,73 @@
         function hideLoading() {
             document.getElementById('loading').classList.add('hidden');
         }
+        
+        // Function to determine road type based on street properties
+        function determineRoadType(street) {
+            const props = street.properties || {};
+            const roadType = props.highway || props.type || street.type || '';
+            const name = props.name || street.name || '';
+            
+            // Create a normalized string for easier checking
+            const normalizedType = roadType.toLowerCase();
+            const normalizedName = name.toLowerCase();
+            
+            // Debug what we're checking
+            console.log(`Road ${name}: type=${roadType}`);
+            
+            // Check for highway keywords
+            if (normalizedType.includes('highway') || 
+                normalizedType.includes('trunk') || 
+                normalizedType.includes('primary') ||
+                normalizedType.includes('motorway') ||
+                normalizedName.includes('highway') ||
+                normalizedName.includes('expressway')) {
+                return 'highway';
+            }
+            
+            // Check for main road keywords
+            if (normalizedType.includes('secondary') || 
+                normalizedType.includes('tertiary') || 
+                normalizedType.includes('main') || 
+                normalizedType.includes('major') || 
+                normalizedName.includes('avenue') || 
+                normalizedName.includes('main road')) {
+                console.log(`Found main road: ${name}`);
+                // Make sure this matches the layer group name (mainRoad)
+                return 'main_road';
+            }
+            
+            // Check for residential keywords
+            if (normalizedType.includes('residential') || 
+                normalizedType.includes('service') || 
+                normalizedType.includes('minor') ||
+                normalizedType.includes('living_street') ||
+                normalizedName.includes('street') ||
+                normalizedName.includes('lane') ||
+                normalizedName.includes('road')) {
+                return 'residential';
+            }
+            
+            // Default to residential
+            return 'residential';
+        }
+        
+        // Get color for road type
+        function getRoadColor(roadType) {
+            return roadColors[roadType] || roadColors.default;
+        }
+        
+        // Get appropriate layer group for road type
+        function getLayerForRoadType(roadType) {
+            console.log(`Getting layer for road type: ${roadType}`);
+            
+            switch(roadType) {
+                case 'highway': return layerGroups.highway;
+                case 'main_road': return layerGroups.main_road;
+                case 'residential': return layerGroups.residential;
+                default: return layerGroups.streets;
+            }
+        }
 
         // Show loading indicator
         showLoading();
@@ -180,11 +288,15 @@
                          street.properties?.street_name || 
                          `Street ${street.id || index + 1}`;
             
+            // Determine road type from properties
+            // Use our road classification function for consistency
+            const roadType = determineRoadType(street);
+            
             // Add properties for reference
             polyline.streetProperties = {
                 name: name,
                 id: street.id || index,
-                type: street.properties?.type || 'Unknown'
+                type: roadType
             };
             
             // Add event listeners
@@ -409,28 +521,46 @@
                     if (street.geometry.type === 'LineString') {
                         const lineCoords = street.geometry.coordinates.map(coord => [coord[1], coord[0]]);
                         
+                        // Determine road type and color
+                        const roadType = determineRoadType(street);
+                        const color = getRoadColor(roadType);
+                        
                         const polyline = L.polyline(lineCoords, {
-                            color: '#ff7800',
+                            color: color,
                             weight: 5,
                             opacity: 0.7
                         });
                         
                         setupStreetPolyline(polyline, street, index);
+                        
+                        // Add to appropriate layer group
                         polyline.addTo(layerGroups.streets);
+                        
+                        // Debug the road type and its layer
+                        console.log(`Road type: ${roadType}, adding to layer: ${getLayerForRoadType(roadType) === layerGroups.mainRoad ? 'mainRoad' : roadType}`);
+                        
+                        polyline.addTo(getLayerForRoadType(roadType));
                         streetCount++;
                         
                     } else if (street.geometry.type === 'MultiLineString') {
                         street.geometry.coordinates.forEach((line, lineIndex) => {
                             const lineCoords = line.map(coord => [coord[1], coord[0]]);
                             
+                            // Determine road type and color
+                            const roadType = determineRoadType(street);
+                            const color = getRoadColor(roadType);
+                            
                             const polyline = L.polyline(lineCoords, {
-                                color: '#ff7800',
+                                color: color,
                                 weight: 5,
                                 opacity: 0.7
                             });
                             
                             setupStreetPolyline(polyline, street, index);
+                            
+                            // Add to appropriate layer group
                             polyline.addTo(layerGroups.streets);
+                            polyline.addTo(getLayerForRoadType(roadType));
                             streetCount++;
                         });
                     } else {
@@ -464,10 +594,69 @@
         document.getElementById('toggle-streets').addEventListener('change', function(e) {
             if (this.checked) {
                 map.addLayer(layerGroups.streets);
+                // Also update the specific road type toggles
+                document.getElementById('toggle-highway').checked = true;
+                document.getElementById('toggle-main-road').checked = true;
+                document.getElementById('toggle-residential').checked = true;
+                map.addLayer(layerGroups.highway);
+                map.addLayer(layerGroups.main_road);
+                map.addLayer(layerGroups.residential);
             } else {
                 map.removeLayer(layerGroups.streets);
+                // Also update the specific road type toggles
+                document.getElementById('toggle-highway').checked = false;
+                document.getElementById('toggle-main-road').checked = false;
+                document.getElementById('toggle-residential').checked = false;
+                map.removeLayer(layerGroups.highway);
+                map.removeLayer(layerGroups.main_road);
+                map.removeLayer(layerGroups.residential);
             }
         });
+        
+        // Road type specific toggles
+        document.getElementById('toggle-highway').addEventListener('change', function(e) {
+            if (this.checked) {
+                map.addLayer(layerGroups.highway);
+            } else {
+                map.removeLayer(layerGroups.highway);
+            }
+            updateMainStreetToggle();
+        });
+        
+        document.getElementById('toggle-main-road').addEventListener('change', function(e) {
+            console.log('Main road toggle changed:', this.checked);
+            console.log('Main road layer exists:', layerGroups.main_road !== undefined);
+            console.log('Main road layer on map:', map.hasLayer(layerGroups.main_road));
+            
+            if (this.checked) {
+                map.addLayer(layerGroups.main_road);
+                console.log('Added main road layer');
+            } else {
+                map.removeLayer(layerGroups.main_road);
+                console.log('Removed main road layer');
+            }
+            updateMainStreetToggle();
+        });
+        
+        document.getElementById('toggle-residential').addEventListener('change', function(e) {
+            if (this.checked) {
+                map.addLayer(layerGroups.residential);
+            } else {
+                map.removeLayer(layerGroups.residential);
+            }
+            updateMainStreetToggle();
+        });
+        
+        // Function to update the main street toggle based on sub-toggles
+        function updateMainStreetToggle() {
+            const highwayChecked = document.getElementById('toggle-highway').checked;
+            const mainRoadChecked = document.getElementById('toggle-main-road').checked;
+            const residentialChecked = document.getElementById('toggle-residential').checked;
+            
+            // Update the "Show All Streets" checkbox based on the individual road type checkboxes
+            document.getElementById('toggle-streets').checked = 
+                highwayChecked && mainRoadChecked && residentialChecked;
+        }
     </script>
 </body>
 </html>
