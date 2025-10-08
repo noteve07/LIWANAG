@@ -83,6 +83,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
             startAngle={90}
             endAngle={-270}
             paddingAngle={paddingAngle}
+            cornerRadius={4}
             onMouseEnter={onPieEnter}
             onMouseLeave={onPieLeave}
             animationBegin={0}

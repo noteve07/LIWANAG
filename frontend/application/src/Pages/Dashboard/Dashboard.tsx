@@ -352,15 +352,15 @@ function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent className="sm:p-6 px-6 py-6">
-                <div className="bg-gray-900 rounded p-4 h-[250px] w-full flex flex-col justify-center">
-                  <div className="flex justify-center items-center gap-8">
-                    <div className="h-44 w-44">
+                <div className="rounded p-4 h-[248px] w-full flex flex-col justify-center">
+                  <div className="flex justify-center items-center gap-10">
+                    <div className="h-52 w-52">
                       <DonutChart
                         data={illuminationData}
-                        innerRadius={42}
-                        outerRadius={70}
+                        innerRadius={47}
+                        outerRadius={80}
                         paddingAngle={4}
-                        hoverOffset={8}
+                        hoverOffset={10}
                       />
                     </div>
                     <div className="space-y-4">
