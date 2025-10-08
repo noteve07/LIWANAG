@@ -31,15 +31,15 @@ export const getLuxColor = (lux: number, roadType: RoadType = RoadType.RESIDENTI
   switch (roadType) {
     case RoadType.MAIN_ROAD:
       // Main roads: Green starts at >30 lux, red is <10 lux
-      if (lux < 5) return colors.deepRed;    // <10 - Deep Red
-      if (lux < 10) return colors.red;        // 10-15
-      if (lux < 18) return colors.darkOrange; // 15-18
-      if (lux < 21) return colors.orange;     // 18-21
-      if (lux < 23) return colors.gold;       // 21-23
-      if (lux < 25) return colors.yellow;     // 23-25
-      if (lux < 30) return colors.lightGreen; // 25-27
+      if (lux < 3) return colors.deepRed;    // <10 - Deep Red
+      if (lux < 5) return colors.red;        // 10-15
+      if (lux < 8) return colors.darkOrange; // 15-18
+      if (lux < 11) return colors.orange;     // 18-21
+      if (lux < 14) return colors.gold;       // 21-23
+      if (lux < 17) return colors.yellow;     // 23-25
+      if (lux < 20) return colors.lightGreen; // 25-27
       if (lux < 35) return colors.mediumGreen; // 27-29
-      if (lux < 40) return colors.green;      // 29-30
+      if (lux < 50) return colors.green;      // 29-30
       return colors.deepGreen;                // >30
       
     case RoadType.HIGHWAY:
@@ -58,15 +58,15 @@ export const getLuxColor = (lux: number, roadType: RoadType = RoadType.RESIDENTI
     case RoadType.RESIDENTIAL:
     default:
       // Residential roads: Light green starts from 20 lux
-      if (lux < 3) return colors.deepRed;     // <5 - Deep Red
-      if (lux < 5) return colors.red;         // 5-8
-      if (lux < 10) return colors.darkOrange; // 8-10
-      if (lux < 12) return colors.orange;     // 10-12
-      if (lux < 14) return colors.gold;       // 12-14
-      if (lux < 16) return colors.yellow;     // 14-16
-      if (lux < 20) return colors.lightGreen; // 16-18
-      if (lux < 22) return colors.mediumGreen; // 18-20
-      if (lux < 24) return colors.green;      // 20-22
+      if (lux < 1) return colors.deepRed;     // <5 - Deep Red
+      if (lux < 3) return colors.red;         // 5-8
+      if (lux < 6) return colors.darkOrange; // 8-10
+      if (lux < 7) return colors.orange;     // 10-12
+      if (lux < 8) return colors.gold;       // 12-14
+      if (lux < 9) return colors.yellow;     // 14-16
+      if (lux < 10) return colors.lightGreen; // 16-18
+      if (lux < 15) return colors.mediumGreen; // 18-20
+      if (lux < 20) return colors.green;      // 20-22
       return colors.deepGreen;                // >22
   }
 };
