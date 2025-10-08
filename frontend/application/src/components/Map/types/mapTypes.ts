@@ -7,9 +7,9 @@ export interface PointData {
   barangay_id: number;
   sensor: string;
   created_at?: string;
-  // New v2 fields
+  // Merged v2 fields
   classification?: string; // 'high', 'low_upper', 'low_lower', 'critical'
-  road_type?: string;      // 'highway', 'main_road', 'residential'
+  road_type?: 'residential' | 'main_road' | 'highway'; // Road type with strong typing
 }
 
 export interface MapVisualizationProps {

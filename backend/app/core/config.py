@@ -18,7 +18,14 @@ class Settings:
     PROJECT_DESCRIPTION: str = "Backend for LIWANAG Sensor Data"
     
     # CORS Configuration
-    ALLOWED_ORIGINS: list = ["*"]  # For development, restrict in production
+    ALLOWED_ORIGINS: list = [
+        "http://localhost:5173",  # Vite dev server
+        "http://127.0.0.1:5173",  # Alternative localhost
+        "http://localhost:3000",  # For React default port
+        "https://liwanag.vercel.app",  # Production frontend
+        "https://liwanag-frontend.vercel.app",  # Alternative production frontend
+        "*"  # Wildcard (remove in strict production)
+    ]
     
     # Device Scheduler Configuration
     SCHEDULER_CHECK_INTERVAL_MINUTES: float = 0.5  
