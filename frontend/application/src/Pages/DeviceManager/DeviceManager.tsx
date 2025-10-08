@@ -9,7 +9,8 @@ import {
 import PageTransition from '../../components/ui/PageTransition';
 import type { Device, DeviceData } from '../../types/device';
 import { Navigate } from 'react-router-dom';
-import { Activity, Battery, Wifi, WifiOff, Play } from 'lucide-react';
+import { Activity, Wifi, WifiOff, Play } from 'lucide-react';
+import esp32Image from '../../assets/logo/esp32_logo.png';
 
 const DeviceManager: React.FC = () => {
   const [deviceData, setDeviceData] = useState<DeviceData | null>(null);
@@ -17,7 +18,7 @@ const DeviceManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'list' | 'cards'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'cards'>('cards');
 
   useEffect(() => {
     const fetchDeviceData = async () => {
@@ -110,6 +111,17 @@ const DeviceManager: React.FC = () => {
   const handleStartMission = (device: Device) => {
     console.log(`Starting mission for device: ${device.name}`);
     // Add mission logic here
+    
+    // Update device mission status - in a real app this would be done via API
+    const updatedDevices = deviceData?.devices.map(d => 
+      d.device_id === device.device_id 
+        ? {...d, missionStatus: 'ACTIVE'} 
+        : d
+    );
+    
+    if (deviceData && updatedDevices) {
+      setDeviceData({...deviceData, devices: updatedDevices});
+    }
   };
 
   // Check if device can start mission (only Alpha devices for now)
@@ -129,22 +141,15 @@ const DeviceManager: React.FC = () => {
           <div className="flex items-center justify-center p-2">
             <div className="relative">
               <img 
-                src="./src/assets/logo/esp32.png" 
+                src={esp32Image} 
                 alt="ESP32" 
-                className="w-24 h-24 object-contain brightness-0 invert"
+                className="w-24 h-24 object-contain"
                 onError={(e) => {
-                  // Try alternative paths
+                  // If the direct path fails, show fallback icon
                   const target = e.currentTarget as HTMLImageElement;
-                  if (target.src.includes('./src/')) {
-                    target.src = '/assets/logo/esp32.png';
-                  } else if (target.src.includes('/assets/')) {
-                    target.src = 'assets/logo/esp32.png';
-                  } else {
-                    // Final fallback - hide and show fallback icon
-                    target.style.display = 'none';
-                    const fallback = target.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.classList.remove('hidden');
-                  }
+                  target.style.display = 'none';
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.classList.remove('hidden');
                 }}
               />
               {/* Fallback ESP32 Icon */}
@@ -174,11 +179,14 @@ const DeviceManager: React.FC = () => {
               </div>
             </div> 
             
-
-            {/* Battery Level */}
-            <div className="flex mt-1 justify-center space-x-2">
-              <Battery size={16} className={`${device.battery_level <= 20 ? 'text-red-400' : device.battery_level <= 50 ? 'text-yellow-400' : 'text-green-400'}`} />
-              <span className="text-sm font-medium text-white">{device.battery_level}%</span>
+            {/* Mission Status */}
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-1">
+                <Activity size={16} className={device.missionStatus === 'ACTIVE' ? "text-amber-400" : "text-blue-400"} />
+                <span className={`text-xs font-medium ${device.missionStatus === 'ACTIVE' ? "text-amber-400" : "text-white"}`}>
+                  {device.missionStatus || 'IDLE'}
+                </span>
+              </div>
             </div>
 
             {/* Last Seen */}
@@ -195,7 +203,7 @@ const DeviceManager: React.FC = () => {
             {/* Data Points */}
             <div className="text-center">
               <div className="flex items-center justify-center space-x-1">
-                <div className="w-3 h-3 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                 <span className="text-xs text-gray-300">Data Points</span>
               </div>
               <span className="text-xs font-medium text-white">
@@ -221,7 +229,7 @@ const DeviceManager: React.FC = () => {
         </CardContent>
       </Card>
     );
-  };
+  }
 
   return (
     <PageTransition>
@@ -231,54 +239,57 @@ const DeviceManager: React.FC = () => {
         <div className="">
           {/* Header with toggle button */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <h1 className="text-3xl font-bold text-white">Device Manager</h1>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <h1 className="text-3xl font-bold text-white">Device Manager</h1>
+            </div>
+            <div className="flex items-center space-x-3">
               {/* View Mode Toggle */}
-              <div className="flex items-center bg-gray-700 rounded overflow-hidden">
+              <div className="flex items-center bg-gray-800 border border-gray-700 rounded-full overflow-hidden p-1">
                 <button 
-                  className={`px-3 py-1 text-sm flex items-center ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
-                  onClick={() => setViewMode('list')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                  List
-                </button>
-                <button 
-                  className={`px-3 py-1 text-sm flex items-center ${viewMode === 'cards' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
+                  className={`px-3 py-1.5 text-xs font-medium flex items-center rounded-full transition-all ${viewMode === 'cards' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-300 hover:text-white'}`}
                   onClick={() => setViewMode('cards')}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                   </svg>
                   Cards
+                </button>
+                <button 
+                  className={`px-3 py-1.5 text-xs font-medium flex items-center rounded-full transition-all ${viewMode === 'list' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-300 hover:text-white'}`}
+                  onClick={() => setViewMode('list')}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  List
                 </button>
               </div>
               
               {/* Refresh Button */}
               <button 
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
+                className="p-2.5 bg-gray-800 border border-gray-700 text-blue-400 hover:text-blue-300 rounded-full flex items-center justify-center transition-all hover:border-blue-500 hover:shadow-glow"
                 onClick={handleRefresh}
                 disabled={isLoading}
+                style={{ boxShadow: isLoading ? '0 0 10px rgba(59, 130, 246, 0.5)' : 'none' }}
               >
                 {isLoading ? (
-                  <>
-                    <span className="animate-spin mr-2">⟳</span>
-                    Refreshing...
-                  </>
+                  <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
                 ) : (
-                  <>
-                    <span className="mr-2">⟳</span>
-                    Refresh
-                  </>
+                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                 )}
               </button>
             </div>
           </div>
           
           {isLoading && !deviceData && (
-            <div className="flex justify-center items-center p-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="flex flex-col justify-center items-center p-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-600 border-t-blue-500"></div>
+              <p className="mt-4 text-gray-400 text-sm">Loading devices...</p>
             </div>
           )}
         
@@ -301,37 +312,6 @@ const DeviceManager: React.FC = () => {
         
         {deviceData && (
           <>
-            {/* Device Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Total Devices</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-white">{deviceData.total_devices}</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Online Devices</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-green-500">{deviceData.online_devices}</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Offline Devices</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-red-500">{deviceData.offline_devices}</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            
             {/* List View */}
             {viewMode === 'list' && (
               <Card className="mb-6 bg-gray-800 border-gray-700">
@@ -413,7 +393,7 @@ const DeviceManager: React.FC = () => {
 
             {/* Cards View - 3 cards per row (6 total: 3 top, 3 bottom) */}
             {viewMode === 'cards' && (
-              <div className="grid grid-cols-3 gap-8 max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mx-auto">
                 {deviceData.devices.map(device => (
                   <DeviceCard key={device.device_id} device={device} />
                 ))}
