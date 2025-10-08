@@ -3,58 +3,76 @@ import { Polyline } from "react-leaflet";
 import type { PointData } from "../types/mapTypes";
 import { getLuxColor, calculateDistance } from "../utils/mapUtils";
 import { MAP_CONFIG } from "../constants/mapConstants";
+import { useMapClickContext } from "../../../contexts/useMapClickContext";
 
 interface MapPolylinesProps {
   streetNames: string[];
   showPolylines: boolean;
   points: PointData[];
   selectedStreetId?: number;
-  onStreetClick: (streetId: number, streetName: string, type: 'surveyed', averageLux: number) => void;
+  onStreetClick: (
+    streetId: number,
+    streetName: string,
+    type: "surveyed",
+    averageLux: number
+  ) => void;
 }
 
-export const MapPolylines = ({ streetNames, showPolylines, points, selectedStreetId, onStreetClick }: MapPolylinesProps) => {
+export const MapPolylines = ({
+  streetNames,
+  showPolylines,
+  points,
+  selectedStreetId,
+  onStreetClick,
+}: MapPolylinesProps) => {
+  const { isClickOnStreet } = useMapClickContext();
   // Function to create gradient line segments for a street (create continuous chains)
   const renderStreetLines = (streetName: string) => {
     // Extract street ID from the streetName (format: "Street X")
-    const streetId = parseInt(streetName.replace('Street ', ''));
+    const streetId = parseInt(streetName.replace("Street ", ""));
     const streetPoints = points.filter((p) => p.street_id === streetId);
-    
+
     if (streetPoints.length < 2) return [];
-    
+
     // Calculate average lux for this street
-    const averageLux = streetPoints.reduce((sum, point) => sum + point.lux, 0) / streetPoints.length;
+    const averageLux =
+      streetPoints.reduce((sum, point) => sum + point.lux, 0) /
+      streetPoints.length;
     const isSelected = selectedStreetId === streetId;
-    
+
     const connectedSegments: JSX.Element[] = [];
     const visited = new Set<number>();
-    
+
     // Create chains of connected points
     for (const startPoint of streetPoints) {
       if (visited.has(startPoint.id)) continue;
-      
+
       // Build a chain starting from this point
       const chain: PointData[] = [startPoint];
       visited.add(startPoint.id);
       let currentPoint = startPoint;
-      
+
       // Keep extending the chain by finding the nearest unvisited neighbor
       while (true) {
         let nearestPoint: PointData | null = null;
         let nearestDistance: number = MAP_CONFIG.MAX_CONNECTION_DISTANCE;
-        
+
         // Find the nearest unvisited point within connection distance
         for (const candidate of streetPoints) {
           if (visited.has(candidate.id)) continue;
-          
+
           const distance = calculateDistance(currentPoint, candidate);
           if (distance < nearestDistance) {
             nearestDistance = distance;
             nearestPoint = candidate;
           }
         }
-        
+
         // If we found a nearby point, add it to the chain
-        if (nearestPoint && nearestDistance <= MAP_CONFIG.MAX_CONNECTION_DISTANCE) {
+        if (
+          nearestPoint &&
+          nearestDistance <= MAP_CONFIG.MAX_CONNECTION_DISTANCE
+        ) {
           chain.push(nearestPoint);
           visited.add(nearestPoint.id);
           currentPoint = nearestPoint;
@@ -63,13 +81,13 @@ export const MapPolylines = ({ streetNames, showPolylines, points, selectedStree
           break;
         }
       }
-      
+
       // Create smooth polyline segments for this chain
       for (let i = 0; i < chain.length - 1; i++) {
         const point1 = chain[i];
         const point2 = chain[i + 1];
-        
-        // Add dashed border for selected street using average lux color
+
+        // Add dashed border for selected street using primary blue color
         if (isSelected) {
           connectedSegments.push(
             <Polyline
@@ -78,15 +96,15 @@ export const MapPolylines = ({ streetNames, showPolylines, points, selectedStree
                 [point1.lat, point1.lon],
                 [point2.lat, point2.lon],
               ]}
-              color={getLuxColor(averageLux)} // Average lux color for highlight
-              weight={7}      // Thicker for border
-              opacity={0.8}   // Semi-transparent
+              color="#1e40af" // Primary blue color for highlight
+              weight={7} // Thicker for border
+              opacity={0.8} // Semi-transparent
               dashArray="10, 5" // Dashed pattern for border effect
               smoothFactor={1.0}
             />
           );
         }
-        
+
         // Draw direct line between points (no interpolation for smoother appearance)
         connectedSegments.push(
           <Polyline
@@ -100,13 +118,17 @@ export const MapPolylines = ({ streetNames, showPolylines, points, selectedStree
             opacity={isSelected ? 1.0 : 0.8}
             smoothFactor={1.0}
             eventHandlers={{
-              click: () => onStreetClick(streetId, streetName, 'surveyed', averageLux)
+              click: (e) => {
+                // Stop event propagation to prevent barangay selection
+                e.originalEvent.stopPropagation();
+                onStreetClick(streetId, streetName, "surveyed", averageLux);
+              },
             }}
           />
         );
       }
     }
-    
+
     return connectedSegments;
   };
 
