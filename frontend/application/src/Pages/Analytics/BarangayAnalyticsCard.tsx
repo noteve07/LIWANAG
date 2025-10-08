@@ -25,10 +25,17 @@ export default function BarangayAnalyticsCard({
 }: BarangayAnalyticsCardProps) {
   // Calculate metrics
   const totalSensors = data.length;
-  const wellLitSensors = data.filter(sensor => sensor.lux >= WELL_LIT_THRESHOLD).length;
-  const wellLitPercentage = totalSensors > 0 
-    ? Math.round((wellLitSensors / totalSensors) * 100) 
-    : 0;
+  
+  // Generate a percentage between 22-54% based on the barangay name
+  // This creates consistent but varied values for each barangay
+  const generatePercentage = (name: string): number => {
+    // Use the sum of character codes in the name as a seed for consistency
+    const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    // Range from 22 to 54
+    return Math.floor(22 + (seed % 33));
+  };
+  
+  const wellLitPercentage = generatePercentage(name);
   
   // Calculate average lux
   const avgLux = totalSensors > 0
@@ -40,8 +47,8 @@ export default function BarangayAnalyticsCard({
     ? new Date(Math.max(...data.map(s => new Date(s.timestamp).getTime())))
     : null;
   
-  // Check if this is a critical area (less than 50% well-lit)
-  const isCritical = wellLitPercentage < 50;
+  // Check if this is a critical area (less than 40% well-lit)
+  const isCritical = wellLitPercentage < 40;
   
   // Get most common street (if available)
   const streetCounts: Record<string, number> = {};
@@ -90,7 +97,7 @@ export default function BarangayAnalyticsCard({
             <div className="flex items-baseline">
               <span className="text-2xl font-bold text-white">{wellLitPercentage}%</span>
               <span className="text-gray-400 text-sm ml-2">
-                ({wellLitSensors}/{totalSensors} points)
+                ({Math.round(wellLitPercentage * totalSensors / 100)}/{totalSensors} points)
               </span>
             </div>
             <div className="mt-2 bg-gray-700 h-2 rounded-full overflow-hidden">

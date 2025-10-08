@@ -118,8 +118,8 @@ function Dashboard() {
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
-                  stroke="#a78bfa"
-                  className="w-5 h-5"
+                  stroke="#c084fc"
+                  className="w-5 h-5 p-1 rounded bg-purple-400/10"
                 >
                   <path
                     strokeLinecap="round"
@@ -130,7 +130,7 @@ function Dashboard() {
               </span>
             </h3>
             <div className="flex items-baseline">
-              <span className="text-4xl font-bold text-white">36.2</span>
+              <span className="text-4xl font-bold text-white">36.1</span>
               <span className="ml-1 text-lg text-gray-400">%</span>
             </div>
             <p className="text-sm text-gray-400 mt-2">
@@ -168,31 +168,40 @@ function Dashboard() {
 
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
-              Sensor Points Gathered
+              Average Illumination
               <span className="ml-2">
-                {/* Chip Icon */}
+                {/* Info Icon */}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
-                  stroke="#f59e0b"
-                  className="w-5 h-5"
+                  stroke="#22d3ee"
+                  className="w-5 h-5 p-1 rounded bg-cyan-400/10"
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M16.5 7.5v-2.25A2.25 2.25 0 0014.25 3h-4.5A2.25 2.25 0 007.5 5.25V7.5m9 9v2.25A2.25 2.25 0 0114.25 21h-4.5A2.25 2.25 0 017.5 18.75V16.5m12-4.5h-1.5m-15 0H3m9-9v1.5m0 15V21m7.5-7.5h-15"
+                    d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
                   />
                 </svg>
               </span>
             </h3>
-            <div className="flex items-baseline">
-              <span className="text-4xl font-bold text-white">4,281</span>
+            <div className="mt-2">
+              <div className="flex items-baseline">
+                <span className="text-4xl font-extrabold text-cyan-400">
+                  5.43 lux
+                </span>
+                <span className="ml-2 text-gray-400 text-sm font-medium">
+                  Average Lux
+                </span>
+              </div>
+              <div className="flex items-baseline mt-4">
+                <span className="text-lg font-medium text-white">
+                  Below standard (20.0 lux)
+                </span>
+              </div>
             </div>
-            <p className="text-sm text-gray-400 mt-2">
-              From multiple sensor devices
-            </p>
           </div>
 
           {/* Middle row - charts */}
