@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartTooltipContent } from './chart';
 
@@ -16,6 +16,8 @@ export type DonutChartProps = {
     value: string;
   };
   className?: string;
+  paddingAngle?: number;
+  hoverOffset?: number;
 };
 
 export const DonutChart: React.FC<DonutChartProps> = ({
@@ -25,7 +27,19 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   showLabel = false,
   centerLabel,
   className,
+  paddingAngle = 5,
+  hoverOffset = 10,
 }) => {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  const onPieEnter = (_: unknown, index: number) => {
+    setActiveIndex(index);
+  };
+
+  const onPieLeave = () => {
+    setActiveIndex(null);
+  };
+
   return (
     <div className={`relative w-full h-full ${className || ''}`}>
       <ResponsiveContainer width="100%" height="100%">
@@ -36,13 +50,34 @@ export const DonutChart: React.FC<DonutChartProps> = ({
             cy="50%"
             labelLine={showLabel}
             innerRadius={innerRadius}
-            outerRadius={outerRadius}
+            outerRadius={(index) => 
+              activeIndex === index ? outerRadius + hoverOffset : outerRadius
+            }
             dataKey="value"
             startAngle={90}
             endAngle={-270}
+            paddingAngle={paddingAngle}
+            onMouseEnter={onPieEnter}
+            onMouseLeave={onPieLeave}
+            animationBegin={0}
+            animationDuration={400}
+            activeShape={{
+              stroke: "#111827", 
+              strokeWidth: 2
+            }}
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
+              <Cell 
+                key={`cell-${index}`} 
+                fill={entry.color} 
+                strokeWidth={activeIndex === index ? 2 : 0}
+                stroke="#fff"
+                style={{
+                  filter: activeIndex === index ? 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.2))' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              />
             ))}
           </Pie>
           <Tooltip
@@ -53,6 +88,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
                 formatter={(value) => `${value}%`}
               />
             )}
+            wrapperStyle={{ outline: 'none' }}
           />
         </PieChart>
       </ResponsiveContainer>

@@ -246,48 +246,61 @@ function Dashboard() {
             </Card>
           </div>
           
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
-            <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
-              Street Illumination Status
-              <span className="ml-2">
+          <div className="md:col-span-2">
+            <Card className="py-0 relative">
+              <span className="absolute top-6 right-6 z-10">
                 {/* Light Bulb Icon */}
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#fde68a" className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3a6 6 0 00-6 6c0 2.5 1.5 4.5 3 6v3a3 3 0 006 0v-3c1.5-1.5 3-3.5 3-6a6 6 0 00-6-6z" />
                 </svg>
               </span>
-            </h3>
-            <div className="mt-4 flex justify-center">
-              <div className="h-64 w-64">
-                <DonutChart 
-                  data={illuminationData}
-                  innerRadius={50}
-                  outerRadius={80}
-                />
-              </div>
-            </div>
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
-                  <span className="text-sm text-gray-300">High</span>
+              <CardHeader className="flex flex-col items-stretch border-b border-gray-700 pt-6 pb-4 px-6">
+                <div className="flex flex-1 flex-col justify-center gap-1">
+                  <CardTitle>Street Illumination Status</CardTitle>
+                  <CardDescription>
+                    Current lighting levels
+                  </CardDescription>
                 </div>
-                <span className="text-sm text-white">36.1%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="w-3 h-3 rounded-full bg-amber-500 mr-2"></span>
-                  <span className="text-sm text-gray-300">Low</span>
+              </CardHeader>
+              <CardContent className="sm:p-6 px-6 py-6">
+                <div className="bg-gray-900 rounded p-4 h-[250px] w-full flex flex-col justify-between">
+                  <div className="flex justify-center items-center pt-3 mt-2">
+                    <div className="h-40 w-40">
+                      <DonutChart 
+                        data={illuminationData}
+                        innerRadius={40}
+                        outerRadius={65}
+                        paddingAngle={4}
+                        hoverOffset={8}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-center space-x-8 pt-3 pb-6 -mt-2">
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center mb-1">
+                        <span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+                        <span className="text-sm text-gray-300">High</span>
+                      </div>
+                      <span className="text-sm font-medium text-white">36.1%</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center mb-1">
+                        <span className="w-3 h-3 rounded-full bg-amber-500 mr-2"></span>
+                        <span className="text-sm text-gray-300">Low</span>
+                      </div>
+                      <span className="text-sm font-medium text-white">43.7%</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center mb-1">
+                        <span className="w-3 h-3 rounded-full bg-red-500 mr-2"></span>
+                        <span className="text-sm text-gray-300">Critical</span>
+                      </div>
+                      <span className="text-sm font-medium text-white">20.2%</span>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-sm text-white">43.7%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="w-3 h-3 rounded-full bg-red-500 mr-2"></span>
-                  <span className="text-sm text-gray-300">Critical</span>
-                </div>
-                <span className="text-sm text-white">20.2%</span>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
           
           {/* Bottom row */}
