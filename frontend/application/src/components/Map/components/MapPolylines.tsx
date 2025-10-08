@@ -1,7 +1,7 @@
 import React from "react";
 import { Polyline } from "react-leaflet";
 import type { PointData } from "../types/mapTypes";
-import { getLuxColor, calculateDistance } from "../utils/mapUtils";
+import { getLuxColor, calculateDistance, RoadType } from "../utils/mapUtils";
 import { MAP_CONFIG } from "../constants/mapConstants";
 import { useMapClickContext } from "../../../contexts/useMapClickContext";
 
@@ -113,7 +113,12 @@ export const MapPolylines = ({
               [point1.lat, point1.lon],
               [point2.lat, point2.lon],
             ]}
-            color={getLuxColor((point1.lux + point2.lux) / 2)} // Keep original gradient colors (don't override)
+            color={getLuxColor(
+              (point1.lux + point2.lux) / 2,
+              point1.road_type
+                ? (point1.road_type as RoadType)
+                : RoadType.RESIDENTIAL
+            )} // Use road type for consistent coloring with markers
             weight={3} // Keep original thickness
             opacity={isSelected ? 1.0 : 0.8}
             smoothFactor={1.0}
