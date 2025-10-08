@@ -416,7 +416,14 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
                 marginBottom: "12px",
               }}
             >
-              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#1e40af" }}>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  color: "#1e40af",
+                }}
+              >
                 Street Details
               </h3>
               <button
@@ -448,7 +455,7 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
                 <span
                   style={{
                     color: "#1e40af",
-                    fontWeight: "500"
+                    fontWeight: "500",
                   }}
                 >
                   {selectedStreet.type === "surveyed"
