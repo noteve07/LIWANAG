@@ -99,7 +99,7 @@ export const MapMarkers = ({
             direction="top"
             offset={[0, -10]}
             permanent={false}
-            opacity={0.9}
+            opacity={0.95}
             className="custom-tooltip"
           >
             <span
@@ -110,7 +110,7 @@ export const MapMarkers = ({
                     ? (pt.road_type as RoadType)
                     : RoadType.RESIDENTIAL
                 ),
-                fontWeight: "500",
+                fontWeight: "600",
               }}
             >
               {pt.lux} lx
@@ -119,14 +119,14 @@ export const MapMarkers = ({
           <Popup className="modern-popup">
             <div
               style={{
-                background: "rgba(17, 25, 38, 0.95)",
+                background: "rgba(10, 15, 25, 0.98)",
                 color: "white",
-                padding: "10px",
+                padding: "12px",
                 borderRadius: "6px",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-                minWidth: "180px",
-                maxWidth: "250px",
-                border: `1px solid ${getLuxColor(pt.lux)}40`,
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.5)",
+                minWidth: "200px",
+                maxWidth: "260px",
+                border: `1px solid ${getLuxColor(pt.lux)}60`,
                 position: "relative",
                 overflow: "hidden",
               }}
@@ -151,24 +151,41 @@ export const MapMarkers = ({
               <div
                 style={{
                   marginTop: "4px",
-                  marginBottom: "8px",
+                  marginBottom: "10px",
                   textAlign: "center",
                 }}
               >
-                <div
-                  style={{
-                    fontSize: "28px",
-                    fontWeight: "600",
-                    color: getLuxColor(
-                      pt.lux,
-                      pt.road_type
-                        ? (pt.road_type as RoadType)
-                        : RoadType.RESIDENTIAL
-                    ),
-                  }}
-                >
-                  {pt.lux} lx
-                </div>
+                {pt.street_id && (
+                  <>
+                    {/* STREET AVERAGE LUX (PROMINENTLY DISPLAYED) */}
+                    <div
+                      style={{
+                        fontSize: "30px",
+                        fontWeight: "600",
+                        color: (() => {
+                          // Calculate street average lux
+                          const streetPoints = points.filter(p => p.street_id === pt.street_id);
+                          const avgLux = streetPoints.length 
+                            ? streetPoints.reduce((sum, p) => sum + p.lux, 0) / streetPoints.length
+                            : 0;
+                          return getLuxColor(
+                            avgLux,
+                            pt.road_type ? (pt.road_type as RoadType) : RoadType.RESIDENTIAL
+                          );
+                        })(),
+                      }}
+                    >
+                      {(() => {
+                        // Calculate street average lux
+                        const streetPoints = points.filter(p => p.street_id === pt.street_id);
+                        const avgLux = streetPoints.length 
+                          ? streetPoints.reduce((sum, p) => sum + p.lux, 0) / streetPoints.length
+                          : 0;
+                        return `${avgLux.toFixed(1)} lx`;
+                      })()}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div
@@ -180,12 +197,7 @@ export const MapMarkers = ({
               >
                 <span
                   style={{
-                    color: getLuxColor(
-                      pt.lux,
-                      pt.road_type
-                        ? (pt.road_type as RoadType)
-                        : RoadType.RESIDENTIAL
-                    ),
+                    color: "#f59e0b", // Amber color for better visibility
                     fontWeight: "500",
                   }}
                 >
@@ -198,12 +210,7 @@ export const MapMarkers = ({
                 <div style={{ fontSize: "12px", color: "#9ca3af" }}>
                   <span
                     style={{
-                      color: getLuxColor(
-                        pt.lux,
-                        pt.road_type
-                          ? (pt.road_type as RoadType)
-                          : RoadType.RESIDENTIAL
-                      ),
+                      color: "#f59e0b", // Amber color for better visibility
                       fontWeight: "500",
                     }}
                   >

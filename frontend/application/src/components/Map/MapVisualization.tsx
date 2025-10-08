@@ -118,15 +118,16 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
         min-width: 0 !important;
       }
       .leaflet-popup-tip {
-        background: rgba(17, 25, 38, 0.95) !important;
-        box-shadow: none !important;
+        background: rgba(10, 15, 25, 0.98) !important;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3) !important;
       }
       .leaflet-popup-close-button {
         color: #f59e0b !important;
-        opacity: 0.8;
+        opacity: 0.9;
         font-size: 18px !important;
         top: 5px !important;
         right: 5px !important;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
       }
       .leaflet-popup-close-button:hover {
         color: white !important;
@@ -135,17 +136,17 @@ function MapVisualization({ height, width }: MapVisualizationProps) {
       
       /* Custom tooltip styling */
       .custom-tooltip .leaflet-tooltip {
-        background: rgba(17, 25, 38, 0.95) !important;
+        background: rgba(5, 10, 20, 0.98) !important;
         border: none !important;
         color: white !important;
-        font-weight: 500;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-        padding: 5px 8px;
+        font-weight: 600;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
         border-radius: 4px;
-        font-size: 12px;
+        font-size: 13px;
       }
       .custom-tooltip .leaflet-tooltip-top:before {
-        border-top-color: rgba(17, 25, 38, 0.95) !important;
+        border-top-color: rgba(5, 10, 20, 0.98) !important;
       }
     `;
     document.head.appendChild(style);
