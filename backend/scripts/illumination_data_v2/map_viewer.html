@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanga Streets and Barangays Viewer</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            max-width: 300px;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            right: 10px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 15px;
+            margin-right: 8px;
+            display: inline-block;
+        }
+        
+        .road-controls {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ccc;
+        }
+        
+        .road-type-item {
+            margin-bottom: 5px;
+        }
+        
+        .street-highlight {
+            stroke: #ff7800;
+            stroke-width: 5;
+            stroke-opacity: 0.9;
+        }
+        
+        .barangay-highlight {
+            stroke: #0078ff;
+            stroke-width: 3;
+            stroke-opacity: 0.9;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            text-align: center;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="loading" class="loading-indicator">
+        <h3>Loading map data...</h3>
+        <p>Please wait</p>
+    </div>
+    <div class="info-panel">
+        <h3>Information</h3>
+        <div id="info-content">
+            <p>Hover or click on a barangay or street to see information.</p>
+        </div>
+    </div>
+    <div class="legend">
+        <h4>Legend</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: rgba(0, 120, 255, 0.2); border: 1px solid #0078ff;"></div>
+            <div>Barangay Boundary</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #E53935; height: 3px;"></div>
+            <div>Highway</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #FF9800; height: 3px;"></div>
+            <div>Main Road</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #43A047; height: 3px;"></div>
+            <div>Residential Road</div>
+        </div>
+    </div>
+    <div class="controls">
+        <label><input type="checkbox" id="toggle-barangays" checked> Show Barangays</label><br>
+        <label><input type="checkbox" id="toggle-streets" checked> Show All Streets</label>
+        
+        <div class="road-controls">
+            <div class="road-type-item">
+                <label><input type="checkbox" id="toggle-highway" checked> Show Highways</label>
+            </div>
+            <div class="road-type-item">
+                <label><input type="checkbox" id="toggle-main-road" checked> Show Main Roads</label>
+            </div>
+            <div class="road-type-item">
+                <label><input type="checkbox" id="toggle-residential" checked> Show Residential</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([14.6836, 120.5429], 14); // Centered on Balanga City
+
+        // Add OpenStreetMap base layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Store layers for toggling
+        const layerGroups = {
+            barangays: L.layerGroup().addTo(map),
+            streets: L.layerGroup().addTo(map),
+            highway: L.layerGroup().addTo(map),
+            main_road: L.layerGroup().addTo(map),  // Changed to match the determineRoadType return value
+            residential: L.layerGroup().addTo(map)
+        };
+        
+        // Road type colors
+        const roadColors = {
+            highway: '#E53935',      // Red
+            main_road: '#FF9800',    // Orange
+            residential: '#43A047',  // Green
+            default: '#FF7800'       // Original orange
+        };
+
+        // Variables to store selected features
+        let selectedBarangay = null;
+        let selectedStreet = null;
+        
+        // Info panel update function
+        function updateInfoPanel(content) {
+            document.getElementById('info-content').innerHTML = content;
+        }
+        
+        // Function to generate random pastel color for barangays
+        function getRandomPastelColor() {
+            const hue = Math.floor(Math.random() * 360);
+            return `hsl(${hue}, 70%, 80%)`;
+        }
+
+        // Function to show loading indicator
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+        }
+
+        // Function to hide loading indicator
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+        
+        // Function to determine road type based on street properties
+        function determineRoadType(street) {
+            const props = street.properties || {};
+            const roadType = props.highway || props.type || street.type || '';
+            const name = props.name || street.name || '';
+            
+            // Create a normalized string for easier checking
+            const normalizedType = roadType.toLowerCase();
+            const normalizedName = name.toLowerCase();
+            
+            // Debug what we're checking
+            console.log(`Road ${name}: type=${roadType}`);
+            
+            // Check for highway keywords
+            if (normalizedType.includes('highway') || 
+                normalizedType.includes('trunk') || 
+                normalizedType.includes('primary') ||
+                normalizedType.includes('motorway') ||
+                normalizedName.includes('highway') ||
+                normalizedName.includes('expressway')) {
+                return 'highway';
+            }
+            
+            // Check for main road keywords
+            if (normalizedType.includes('secondary') || 
+                normalizedType.includes('tertiary') || 
+                normalizedType.includes('main') || 
+                normalizedType.includes('major') || 
+                normalizedName.includes('avenue') || 
+                normalizedName.includes('main road')) {
+                console.log(`Found main road: ${name}`);
+                // Make sure this matches the layer group name (mainRoad)
+                return 'main_road';
+            }
+            
+            // Check for residential keywords
+            if (normalizedType.includes('residential') || 
+                normalizedType.includes('service') || 
+                normalizedType.includes('minor') ||
+                normalizedType.includes('living_street') ||
+                normalizedName.includes('street') ||
+                normalizedName.includes('lane') ||
+                normalizedName.includes('road')) {
+                return 'residential';
+            }
+            
+            // Default to residential
+            return 'residential';
+        }
+        
+        // Get color for road type
+        function getRoadColor(roadType) {
+            return roadColors[roadType] || roadColors.default;
+        }
+        
+        // Get appropriate layer group for road type
+        function getLayerForRoadType(roadType) {
+            console.log(`Getting layer for road type: ${roadType}`);
+            
+            switch(roadType) {
+                case 'highway': return layerGroups.highway;
+                case 'main_road': return layerGroups.main_road;
+                case 'residential': return layerGroups.residential;
+                default: return layerGroups.streets;
+            }
+        }
+
+        // Show loading indicator
+        showLoading();
+
+        // Helper function to set up street polyline properties and events
+        function setupStreetPolyline(polyline, street, index) {
+            // Use name from various possible locations in the data
+            const name = street.properties?.name || 
+                         street.name || 
+                         street.properties?.street_name || 
+                         `Street ${street.id || index + 1}`;
+            
+            // Determine road type from properties
+            // Use our road classification function for consistency
+            const roadType = determineRoadType(street);
+            
+            // Add properties for reference
+            polyline.streetProperties = {
+                name: name,
+                id: street.id || index,
+                type: roadType
+            };
+            
+            // Add event listeners
+            polyline.on('mouseover', function(e) {
+                this.setStyle({
+                    weight: 8,
+                    opacity: 0.9
+                });
+                
+                // Update info panel
+                updateInfoPanel(`
+                    <h4>Street: ${this.streetProperties.name}</h4>
+                    <p>ID: ${this.streetProperties.id}</p>
+                    <p>Type: ${this.streetProperties.type}</p>
+                `);
+            });
+            
+            polyline.on('mouseout', function(e) {
+                if (selectedStreet !== this) {
+                    this.setStyle({
+                        weight: 5,
+                        opacity: 0.7
+                    });
+                }
+            });
+            
+            polyline.on('click', function(e) {
+                // Reset previously selected street
+                if (selectedStreet) {
+                    selectedStreet.setStyle({
+                        weight: 5,
+                        opacity: 0.7,
+                        className: ''
+                    });
+                }
+                
+                // Set new selection
+                selectedStreet = this;
+                this.setStyle({
+                    weight: 8,
+                    opacity: 1,
+                    className: 'street-highlight'
+                });
+                
+                updateInfoPanel(`
+                    <h4>Selected Street</h4>
+                    <p><strong>${this.streetProperties.name}</strong></p>
+                    <p>ID: ${this.streetProperties.id}</p>
+                    <p>Type: ${this.streetProperties.type}</p>
+                    <p>Length: ${(this.getLatLngs().reduce((total, point, i, arr) => {
+                        if (i === 0) return total;
+                        return total + map.distance(arr[i-1], point);
+                    }, 0) / 1000).toFixed(2)} km</p>
+                `);
+                
+                // Bring to front
+                this.bringToFront();
+            });
+        }
+        
+        // Load data in parallel
+        Promise.all([
+            fetch('barangays_v2.json').then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok for barangays_v2.json');
+                }
+                return response.json();
+            }),
+            fetch('streets_v2.json').then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok for streets_v2.json');
+                }
+                return response.json();
+            })
+        ])
+        .then(([barangaysData, streetsData]) => {
+            console.log('Data loaded successfully');
+            
+            // Process barangays
+            console.log('Barangays data structure:', barangaysData);
+            
+            // Handle different possible structures (array or object with features array)
+            let barangayFeatures = barangaysData;
+            
+            // If it's a GeoJSON FeatureCollection
+            if (barangaysData.type === 'FeatureCollection' && Array.isArray(barangaysData.features)) {
+                barangayFeatures = barangaysData.features;
+                console.log('Using FeatureCollection.features array for barangays');
+            } else if (!Array.isArray(barangaysData)) {
+                console.error('Unexpected barangays data structure, expected array or FeatureCollection');
+                updateInfoPanel('<p style="color: red;">Error: Barangays data has unexpected format</p>');
+                return;
+            }
+            
+            barangayFeatures.forEach((barangay, index) => {
+                if (!barangay.geometry || !barangay.geometry.coordinates) {
+                    console.warn(`Barangay at index ${index} has no geometry or coordinates`, barangay);
+                    return;
+                }
+                
+                const fillColor = getRandomPastelColor();
+                let polygonCoords = [];
+                
+                try {
+                    if (barangay.geometry.type === 'Polygon') {
+                        barangay.geometry.coordinates.forEach(ring => {
+                            const latLngs = ring.map(coord => [coord[1], coord[0]]);
+                            polygonCoords.push(latLngs);
+                        });
+                    } else if (barangay.geometry.type === 'MultiPolygon') {
+                        barangay.geometry.coordinates.forEach(polygon => {
+                            const polyCoords = polygon.map(ring => 
+                                ring.map(coord => [coord[1], coord[0]])
+                            );
+                            polygonCoords = polygonCoords.concat(polyCoords);
+                        });
+                    } else {
+                        console.warn(`Unsupported geometry type for barangay ${index}: ${barangay.geometry.type}`);
+                        return;
+                    }
+                    
+                    if (polygonCoords.length > 0) {
+                        const polygon = L.polygon(polygonCoords, {
+                            fillColor: fillColor,
+                            weight: 2,
+                            opacity: 1,
+                            color: '#0078ff',
+                            fillOpacity: 0.3
+                        });
+                        
+                        // Add properties for reference
+                        polygon.barangayProperties = {
+                            name: barangay.properties?.name || barangay.name || `Barangay ${index + 1}`,
+                            id: barangay.id || index
+                        };
+                        
+                        // Add event listeners
+                        polygon.on('mouseover', function(e) {
+                            this.setStyle({
+                                weight: 3,
+                                fillOpacity: 0.6
+                            });
+                            
+                            // Update info panel
+                            updateInfoPanel(`
+                                <h4>Barangay: ${this.barangayProperties.name}</h4>
+                                <p>ID: ${this.barangayProperties.id}</p>
+                            `);
+                        });
+                        
+                        polygon.on('mouseout', function(e) {
+                            if (selectedBarangay !== this) {
+                                this.setStyle({
+                                    weight: 2,
+                                    fillOpacity: 0.3
+                                });
+                            }
+                        });
+                        
+                        polygon.on('click', function(e) {
+                            // Reset previously selected barangay
+                            if (selectedBarangay) {
+                                selectedBarangay.setStyle({
+                                    weight: 2,
+                                    fillOpacity: 0.3,
+                                    className: ''
+                                });
+                            }
+                            
+                            // Set new selection
+                            selectedBarangay = this;
+                            this.setStyle({
+                                weight: 4,
+                                fillOpacity: 0.7,
+                                className: 'barangay-highlight'
+                            });
+                            
+                            updateInfoPanel(`
+                                <h4>Selected Barangay</h4>
+                                <p><strong>${this.barangayProperties.name}</strong></p>
+                                <p>ID: ${this.barangayProperties.id}</p>
+                            `);
+                            
+                            // Bring to front to ensure borders are visible
+                            this.bringToFront();
+                        });
+                        
+                        // Add to layer group
+                        polygon.addTo(layerGroups.barangays);
+                    }
+                } catch (error) {
+                    console.error(`Error processing barangay ${index}:`, error);
+                }
+            });
+            
+            console.log(`Processed ${barangayFeatures.length} barangays`);
+            
+            // Process streets
+            console.log('Streets data structure:', streetsData);
+            
+            // Handle different possible structures
+            let streetFeatures = streetsData;
+            
+            // If it's a GeoJSON FeatureCollection
+            if (streetsData.type === 'FeatureCollection' && Array.isArray(streetsData.features)) {
+                streetFeatures = streetsData.features;
+                console.log('Using FeatureCollection.features array for streets');
+            } else if (!Array.isArray(streetsData)) {
+                console.error('Unexpected streets data structure, expected array or FeatureCollection');
+                updateInfoPanel('<p style="color: red;">Error: Streets data has unexpected format</p>');
+                return;
+            }
+            
+            let streetCount = 0;
+            streetFeatures.forEach((street, index) => {
+                if (!street.geometry || !street.geometry.coordinates) {
+                    console.warn(`Street at index ${index} has no geometry or coordinates`, street);
+                    return;
+                }
+                
+                try {
+                    if (street.geometry.type === 'LineString') {
+                        const lineCoords = street.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                        
+                        // Determine road type and color
+                        const roadType = determineRoadType(street);
+                        const color = getRoadColor(roadType);
+                        
+                        const polyline = L.polyline(lineCoords, {
+                            color: color,
+                            weight: 5,
+                            opacity: 0.7
+                        });
+                        
+                        setupStreetPolyline(polyline, street, index);
+                        
+                        // Add to appropriate layer group
+                        polyline.addTo(layerGroups.streets);
+                        
+                        // Debug the road type and its layer
+                        console.log(`Road type: ${roadType}, adding to layer: ${getLayerForRoadType(roadType) === layerGroups.mainRoad ? 'mainRoad' : roadType}`);
+                        
+                        polyline.addTo(getLayerForRoadType(roadType));
+                        streetCount++;
+                        
+                    } else if (street.geometry.type === 'MultiLineString') {
+                        street.geometry.coordinates.forEach((line, lineIndex) => {
+                            const lineCoords = line.map(coord => [coord[1], coord[0]]);
+                            
+                            // Determine road type and color
+                            const roadType = determineRoadType(street);
+                            const color = getRoadColor(roadType);
+                            
+                            const polyline = L.polyline(lineCoords, {
+                                color: color,
+                                weight: 5,
+                                opacity: 0.7
+                            });
+                            
+                            setupStreetPolyline(polyline, street, index);
+                            
+                            // Add to appropriate layer group
+                            polyline.addTo(layerGroups.streets);
+                            polyline.addTo(getLayerForRoadType(roadType));
+                            streetCount++;
+                        });
+                    } else {
+                        console.warn(`Unsupported geometry type for street ${index}: ${street.geometry.type}`);
+                    }
+                } catch (error) {
+                    console.error(`Error processing street ${index}:`, error);
+                }
+            });
+            
+            console.log(`Processed ${streetCount} street segments from ${streetFeatures.length} features`);
+            
+            // Hide loading indicator
+            hideLoading();
+        })
+        .catch(error => {
+            console.error('Error loading data:', error);
+            updateInfoPanel(`<p style="color: red;">Error loading data: ${error.message}</p>`);
+            hideLoading();
+        });
+        
+        // Set up layer toggles
+        document.getElementById('toggle-barangays').addEventListener('change', function(e) {
+            if (this.checked) {
+                map.addLayer(layerGroups.barangays);
+            } else {
+                map.removeLayer(layerGroups.barangays);
+            }
+        });
+        
+        document.getElementById('toggle-streets').addEventListener('change', function(e) {
+            if (this.checked) {
+                map.addLayer(layerGroups.streets);
+                // Also update the specific road type toggles
+                document.getElementById('toggle-highway').checked = true;
+                document.getElementById('toggle-main-road').checked = true;
+                document.getElementById('toggle-residential').checked = true;
+                map.addLayer(layerGroups.highway);
+                map.addLayer(layerGroups.main_road);
+                map.addLayer(layerGroups.residential);
+            } else {
+                map.removeLayer(layerGroups.streets);
+                // Also update the specific road type toggles
+                document.getElementById('toggle-highway').checked = false;
+                document.getElementById('toggle-main-road').checked = false;
+                document.getElementById('toggle-residential').checked = false;
+                map.removeLayer(layerGroups.highway);
+                map.removeLayer(layerGroups.main_road);
+                map.removeLayer(layerGroups.residential);
+            }
+        });
+        
+        // Road type specific toggles
+        document.getElementById('toggle-highway').addEventListener('change', function(e) {
+            if (this.checked) {
+                map.addLayer(layerGroups.highway);
+            } else {
+                map.removeLayer(layerGroups.highway);
+            }
+            updateMainStreetToggle();
+        });
+        
+        document.getElementById('toggle-main-road').addEventListener('change', function(e) {
+            console.log('Main road toggle changed:', this.checked);
+            console.log('Main road layer exists:', layerGroups.main_road !== undefined);
+            console.log('Main road layer on map:', map.hasLayer(layerGroups.main_road));
+            
+            if (this.checked) {
+                map.addLayer(layerGroups.main_road);
+                console.log('Added main road layer');
+            } else {
+                map.removeLayer(layerGroups.main_road);
+                console.log('Removed main road layer');
+            }
+            updateMainStreetToggle();
+        });
+        
+        document.getElementById('toggle-residential').addEventListener('change', function(e) {
+            if (this.checked) {
+                map.addLayer(layerGroups.residential);
+            } else {
+                map.removeLayer(layerGroups.residential);
+            }
+            updateMainStreetToggle();
+        });
+        
+        // Function to update the main street toggle based on sub-toggles
+        function updateMainStreetToggle() {
+            const highwayChecked = document.getElementById('toggle-highway').checked;
+            const mainRoadChecked = document.getElementById('toggle-main-road').checked;
+            const residentialChecked = document.getElementById('toggle-residential').checked;
+            
+            // Update the "Show All Streets" checkbox based on the individual road type checkboxes
+            document.getElementById('toggle-streets').checked = 
+                highwayChecked && mainRoadChecked && residentialChecked;
+        }
+    </script>
+</body>
+</html>
