@@ -460,7 +460,7 @@ function Analytics() {
                           index % 2 === 0 ? "bg-gray-800" : "bg-gray-800/50"
                         }`}
                         onClick={() =>
-                          navigate(`/analytics/${encodeURIComponent(name)}`)
+                          navigate(`/app/analytics/${encodeURIComponent(name)}`)
                         }
                       >
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -590,7 +590,7 @@ function Analytics() {
                   name={name}
                   data={barangayGroups[name]}
                   onClick={() =>
-                    navigate(`/analytics/${encodeURIComponent(name)}`)
+                    navigate(`/app/analytics/${encodeURIComponent(name)}`)
                   }
                 />
               ))}
