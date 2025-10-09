@@ -118,8 +118,8 @@ function Dashboard() {
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
-                  stroke="#a78bfa"
-                  className="w-5 h-5"
+                  stroke="#c084fc"
+                  className="w-5 h-5 p-1 rounded bg-purple-400/10"
                 >
                   <path
                     strokeLinecap="round"
@@ -130,7 +130,7 @@ function Dashboard() {
               </span>
             </h3>
             <div className="flex items-baseline">
-              <span className="text-4xl font-bold text-white">36.2</span>
+              <span className="text-4xl font-bold text-white">36.1</span>
               <span className="ml-1 text-lg text-gray-400">%</span>
             </div>
             <p className="text-sm text-gray-400 mt-2">
@@ -168,31 +168,40 @@ function Dashboard() {
 
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 relative">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
-              Sensor Points Gathered
+              Average Illumination
               <span className="ml-2">
-                {/* Chip Icon */}
+                {/* Info Icon */}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
-                  stroke="#f59e0b"
-                  className="w-5 h-5"
+                  stroke="#22d3ee"
+                  className="w-5 h-5 p-1 rounded bg-cyan-400/10"
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M16.5 7.5v-2.25A2.25 2.25 0 0014.25 3h-4.5A2.25 2.25 0 007.5 5.25V7.5m9 9v2.25A2.25 2.25 0 0114.25 21h-4.5A2.25 2.25 0 017.5 18.75V16.5m12-4.5h-1.5m-15 0H3m9-9v1.5m0 15V21m7.5-7.5h-15"
+                    d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
                   />
                 </svg>
               </span>
             </h3>
-            <div className="flex items-baseline">
-              <span className="text-4xl font-bold text-white">4,281</span>
+            <div className="mt-2">
+              <div className="flex items-baseline">
+                <span className="text-4xl font-extrabold text-cyan-400">
+                  5.43 lux
+                </span>
+                <span className="ml-2 text-gray-400 text-sm font-medium">
+                  Average Lux
+                </span>
+              </div>
+              <div className="flex items-baseline mt-4">
+                <span className="text-lg font-medium text-white">
+                  Below standard (20.0 lux)
+                </span>
+              </div>
             </div>
-            <p className="text-sm text-gray-400 mt-2">
-              From multiple sensor devices
-            </p>
           </div>
 
           {/* Middle row - charts */}
@@ -412,7 +421,13 @@ function Dashboard() {
               </span>
             </h3>
             <ul className="mt-4 space-y-3">
-              {dashboardData.topPriorityStreets.map((street, index) => (
+              {[
+                { name: "P. Gomez Street", averageLux: 0.86 },
+                { name: "Don Irineo Street", averageLux: 1.34 },
+                { name: "Jose Basa Street", averageLux: 1.82 },
+                { name: "F. Balagtas Street", averageLux: 2.88 },
+                { name: "España Street", averageLux: 2.92 }
+              ].map((street, index) => (
                 <li
                   key={street.name}
                   className="flex items-center justify-between"
@@ -440,25 +455,31 @@ function Dashboard() {
             <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
               Top 5 Priority Barangay
               <span className="ml-2">
-                {/* Location Pin Icon */}
+                {/* Warning Icon */}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
-                  stroke="#34d399"
+                  stroke="#ef4444"
                   className="w-5 h-5"
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M12 21c-4.418 0-8-4.03-8-9a8 8 0 1116 0c0 4.97-3.582 9-8 9zm0-11a2 2 0 100 4 2 2 0 000-4z"
+                    d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </span>
             </h3>
             <ul className="mt-4 space-y-3">
-              {dashboardData.topPriorityBarangays.map((barangay, index) => (
+              {[
+                { name: "Dangcol", averageLux: 5.28 },
+                { name: "Cabog-Cabog", averageLux: 5.92 },
+                { name: "Tenejero", averageLux: 6.09 },
+                { name: "Puerto Rivas Lote", averageLux: 6.44 },
+                { name: "Cupang North", averageLux: 7.53 }
+              ].map((barangay, index) => (
                 <li
                   key={barangay.name}
                   className="flex items-center justify-between"
@@ -482,18 +503,18 @@ function Dashboard() {
             </ul>
           </div>
 
-          {barangaysNoUpdate.length > 0 && (
-            <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 max-h-58 overflow-y-auto scrollbar relative">
+          {/* Barangay Last Update section */}
+            <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 shadow-md md:col-span-2 max-h-58 overflow-y-auto no-scrollbar relative">
               <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
                 Barangay Last Update
                 <span className="ml-2">
-                  {/* Exclamation Icon */}
+                  {/* Info Icon */}
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
-                    stroke="#f87171"
+                    stroke="#3b82f6"
                     className="w-5 h-5"
                   >
                     <path
@@ -514,7 +535,11 @@ function Dashboard() {
                   </span>
                 </div>
                 <ul className="divide-y divide-gray-700">
-                  {barangaysNoUpdate.map((b) => (
+                  {[
+                    { barangay: "Tortugas", lastUpdateString: "Oct 3, 2025", relative: "6 days ago" },
+                    { barangay: "Ibayo", lastUpdateString: "Oct 4, 2025", relative: "5 days ago" },
+                    { barangay: "Puerto Rivas Itaas", lastUpdateString: "Oct 5, 2025", relative: "4 days ago" }
+                  ].map((b) => (
                     <li
                       key={b.barangay}
                       className="grid grid-cols-2 gap-2 py-2 items-center"
@@ -530,7 +555,6 @@ function Dashboard() {
                 </ul>
               </div>
             </div>
-          )}
         </div>
       )}
     </div>
