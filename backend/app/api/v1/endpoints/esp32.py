@@ -136,7 +136,7 @@ async def receive_sensor_demo_data(data: SensorDemo):
     Sensor field is always set to 'Alpha'.
     """
     try:
-        print(f"RECEIVED DEMO DATA: {data}")
+        print(f"🔵 RECEIVED DEMO DATA: {data}")
 
         # prepare the data for supabase insertion
         record = data.model_dump()
@@ -406,9 +406,9 @@ async def stop_mission(device_id: int = 1001):
         
         # If mission is NOT active, ESP32 should stop
         should_stop = not mission_active
-        
-        print(f"🛑 Stop-mission check for {device_name} (ID: {device_id}): {'STOP' if should_stop else 'CONTINUE'}")
-        
+
+        print(f"ℹ️ Sync Mission Check for {device_name} (ID: {device_id}): {'STOP' if should_stop else 'CONTINUE'}")
+
         return {
             "status": should_stop,
             "message": f"Stop mission status for device {device_id}",
