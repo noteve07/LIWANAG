@@ -1,7 +1,6 @@
 import type { SensorData } from '../../types/sensor';
 import { LucideAlertCircle, LucideChevronRight, LucideCheck } from 'lucide-react';
 import TransitionWrapper from '../../components/ui/TransitionWrapper';
-import { WELL_LIT_THRESHOLD } from '../../constants/metrics';
 
 // Utility function for merging class names
 const cn = (...classes: (string | boolean | undefined)[]) => {
@@ -114,7 +113,7 @@ export default function BarangayAnalyticsCard({
               <div className="text-gray-400 text-xs uppercase mb-1">Avg Lux</div>
               <div className="flex items-baseline">
                 <span className={
-                  avgLux < WELL_LIT_THRESHOLD 
+                  avgLux < 20 
                     ? "text-lg font-semibold text-amber-400" 
                     : "text-lg font-semibold text-emerald-400"
                 }>

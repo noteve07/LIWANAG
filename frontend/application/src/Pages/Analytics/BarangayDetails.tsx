@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { sampleApiResponse } from '../../utils/sampleData';
 import BarangayAnalyticsCard from './BarangayAnalyticsCard';
-import { WELL_LIT_THRESHOLD } from '../../constants/metrics';
 
 export default function BarangayDetails() {
   const { barangayName } = useParams();
@@ -17,7 +16,7 @@ export default function BarangayDetails() {
       <div className="p-6 text-center">
         <h2 className="text-2xl font-bold text-white mb-4">Barangay Not Found</h2>
         <button 
-          onClick={() => navigate('/analytics')}
+          onClick={() => navigate('/app/analytics')}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           Back to Analytics
@@ -31,7 +30,7 @@ export default function BarangayDetails() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-white">{barangayName} Details</h2>
         <button
-          onClick={() => navigate('/analytics')}
+          onClick={() => navigate('/app/analytics')}
           className="flex items-center text-blue-400 hover:text-blue-300"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -48,7 +47,7 @@ export default function BarangayDetails() {
             name={barangayName || ''}
             data={sensorData}
             isDetailView={true}
-            onClick={() => navigate('/analytics')}
+            onClick={() => navigate('/app/analytics')}
           />
         </div>
         
@@ -71,7 +70,7 @@ export default function BarangayDetails() {
                     <td className="px-4 py-2 whitespace-nowrap text-sm text-white">{sensor.street || 'Unknown'}</td>
                     <td className="px-4 py-2 whitespace-nowrap text-sm text-white">
                       <span className={`px-2 py-1 text-xs rounded-full ${
-                        sensor.lux < WELL_LIT_THRESHOLD
+                        sensor.lux < 20
                           ? 'bg-amber-400/10 text-amber-400'
                           : 'bg-emerald-400/10 text-emerald-400'
                       }`}>

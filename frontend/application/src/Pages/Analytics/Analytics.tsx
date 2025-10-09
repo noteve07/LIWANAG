@@ -460,7 +460,7 @@ function Analytics() {
                           index % 2 === 0 ? "bg-gray-800" : "bg-gray-800/50"
                         }`}
                         onClick={() =>
-                          navigate(`/analytics/${encodeURIComponent(name)}`)
+                          navigate(`/app/analytics/${encodeURIComponent(name)}`)
                         }
                       >
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -536,7 +536,7 @@ function Analytics() {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span
                             className={`text-sm font-medium ${
-                              avgLux < WELL_LIT_THRESHOLD
+                              avgLux < 20
                                 ? "text-amber-400"
                                 : "text-emerald-400"
                             }`}
@@ -590,7 +590,7 @@ function Analytics() {
                   name={name}
                   data={barangayGroups[name]}
                   onClick={() =>
-                    navigate(`/analytics/${encodeURIComponent(name)}`)
+                    navigate(`/app/analytics/${encodeURIComponent(name)}`)
                   }
                 />
               ))}
