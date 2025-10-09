@@ -10,6 +10,7 @@ import PageTransition from '../../components/ui/PageTransition';
 import type { Device, DeviceData } from '../../types/device';
 import { Navigate } from 'react-router-dom';
 import { Activity, Battery, Wifi, WifiOff, Play } from 'lucide-react';
+import espLogo from './espressif-systems.svg';
 
 const DeviceManager: React.FC = () => {
   const [deviceData, setDeviceData] = useState<DeviceData | null>(null);
@@ -124,26 +125,29 @@ const DeviceManager: React.FC = () => {
     
     return (
       <Card className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-all duration-300 hover:shadow-lg overflow-hidden h-auto">
-        <CardContent className="p-3">
+        <CardContent className="py-3 px-2">
           {/* ESP32 Logo - Priority */}
           <div className="flex items-center justify-center p-2">
-            <div className="relative">
-              <img 
-                src="/assets/logo/esp32_logo.png" 
-                alt="ESP32" 
-                className="w-20 h-20 object-contain brightness-0 invert"
-                onError={(e) => {
-                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.classList.remove('hidden');
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-              {/* Fallback ESP32 Icon */}
-              <div className="hidden w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">ESP32</span>
+              <div className="relative">
+                <img
+                  src={espLogo}
+                  alt="ESP32"
+                  className="w-20 h-20 object-contain"
+                  style={{
+                    filter: 'sepia(1) saturate(1000%) hue-rotate(-20deg) brightness(0.95)'
+                  }}
+                  onError={(e) => {
+                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.classList.remove('hidden');
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                {/* Fallback ESP32 Icon */}
+                <div className="hidden w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold">ESP32</span>
+                </div>
+                <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${isOnline ? 'bg-green-400' : 'bg-red-400'} border-2 border-gray-800`}></div>
               </div>
-              <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${isOnline ? 'bg-green-400' : 'bg-red-400'} border-2 border-gray-800`}></div>
-            </div>
           </div>
 
           {/* Device Name and Status */}
@@ -164,24 +168,6 @@ const DeviceManager: React.FC = () => {
                 </span>
               </div>
             </div> 
-            
-
-            {/* Battery Level */}
-            <div className="flex mt-1 justify-center space-x-2">
-              <Battery size={16} className={`${device.battery_level <= 20 ? 'text-red-400' : device.battery_level <= 50 ? 'text-yellow-400' : 'text-green-400'}`} />
-              <span className="text-sm font-medium text-white">{device.battery_level}%</span>
-            </div>
-
-            {/* Last Seen */}
-            <div className="text-center">
-              <div className="flex items-center justify-center space-x-1">
-                <Activity size={14} className="text-blue-400" />
-                <span className="text-xs text-gray-300">Last Seen</span>
-              </div>
-              <span className="text-xs font-medium text-white">
-                {formatTimeSinceLastSeen(device.minutes_since_last_seen)}
-              </span>
-            </div>
 
             {/* Data Points */}
             <div className="text-center">
@@ -200,7 +186,7 @@ const DeviceManager: React.FC = () => {
           <button
             onClick={() => canMission ? handleStartMission(device) : undefined}
             disabled={!canMission}
-            className={`w-full py-3 px-4 mt-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+            className={`mx-auto w-3/4 py-2 px-4 mt-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
               canMission
                 ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-gray-900 hover:shadow-lg'
                 : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-50'
@@ -219,7 +205,7 @@ const DeviceManager: React.FC = () => {
       {apiError ? (
         <Navigate to="/error" state={{ errorMessage: error }} replace />
       ) : (
-        <div className="">
+        <div className="p-6">
           {/* Header with toggle button */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h1 className="text-3xl font-bold text-white">Device Manager</h1>
@@ -293,32 +279,32 @@ const DeviceManager: React.FC = () => {
         {deviceData && (
           <>
             {/* Device Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Total Devices</CardTitle>
-                </CardHeader>
-                <CardContent>
+            <div className="grid grid-cols-1 items-center md:grid-cols-3 gap-4 mb-4">
+              <Card className="flex flex-row items-center justify-center space-x-4 bg-gray-800 border-gray-700 px-2">
+                <div className="text-left">
+                  <CardTitle className="text-white text-sm">Total Devices</CardTitle>
+                </div>
+                <div>
                   <p className="text-3xl font-bold text-white">{deviceData.total_devices}</p>
-                </CardContent>
+                </div>
               </Card>
-              
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Online Devices</CardTitle>
-                </CardHeader>
-                <CardContent>
+
+              <Card className="flex flex-row items-center justify-center space-x-4 bg-gray-800 border-gray-700 px-2">
+                <div className="text-left">
+                  <CardTitle className="text-white text-sm">Online Devices</CardTitle>
+                </div>
+                <div>
                   <p className="text-3xl font-bold text-green-500">{deviceData.online_devices}</p>
-                </CardContent>
+                </div>
               </Card>
-              
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Offline Devices</CardTitle>
-                </CardHeader>
-                <CardContent>
+
+              <Card className="flex flex-row items-center justify-center space-x-4 bg-gray-800 border-gray-700 px-2">
+                <div className="text-left">
+                  <CardTitle className="text-white text-sm">Offline Devices</CardTitle>
+                </div>
+                <div>
                   <p className="text-3xl font-bold text-red-500">{deviceData.offline_devices}</p>
-                </CardContent>
+                </div>
               </Card>
             </div>
 
@@ -413,7 +399,7 @@ const DeviceManager: React.FC = () => {
 
             {/* Selected Device Details Modal/Card */}
             {selectedDevice && viewMode === 'list' && (
-              <Card className="mt-6 bg-gray-800 border-gray-700">
+              <Card className="mt-6 bg-gray-800 border-gray-700 py-4 px-2">
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-white">Device Details: {selectedDevice.name}</CardTitle>

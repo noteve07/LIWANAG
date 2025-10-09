@@ -518,9 +518,6 @@ function Analytics() {
                             >
                               {wellLitPercentage}%
                             </span>
-                            <span className="text-xs text-gray-400 ml-2">
-                              ({Math.round(wellLitPercentage * totalSensors / 100)}/{totalSensors})
-                            </span>
                             <div className="ml-2 w-16 bg-gray-700 h-2 rounded-full overflow-hidden">
                               <div
                                 className={

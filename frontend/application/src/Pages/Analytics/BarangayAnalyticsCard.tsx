@@ -95,9 +95,6 @@ export default function BarangayAnalyticsCard({
             <div className="text-gray-400 text-xs uppercase mb-1">Well-lit Areas</div>
             <div className="flex items-baseline">
               <span className="text-2xl font-bold text-white">{wellLitPercentage}%</span>
-              <span className="text-gray-400 text-sm ml-2">
-                ({Math.round(wellLitPercentage * totalSensors / 100)}/{totalSensors} points)
-              </span>
             </div>
             <div className="mt-2 bg-gray-700 h-2 rounded-full overflow-hidden">
               <div 
