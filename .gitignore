@@ -1,5 +1,6 @@
 /.vscode
 backend/.env
+backend/venv
 
 # Python compiled files
 *.pyc
