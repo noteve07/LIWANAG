@@ -9,8 +9,10 @@ import {
 import PageTransition from '../../components/ui/PageTransition';
 import type { Device, DeviceData } from '../../types/device';
 import { Navigate } from 'react-router-dom';
-import { Activity, Battery, Wifi, WifiOff, Play } from 'lucide-react';
+import { Wifi, WifiOff, Play } from 'lucide-react';
 import espLogo from './espressif-systems.svg';
+
+const API_BASE_URL = 'https://liwanag-backend.onrender.com/api/v1';
 
 const DeviceManager: React.FC = () => {
   const [deviceData, setDeviceData] = useState<DeviceData | null>(null);
@@ -19,6 +21,8 @@ const DeviceManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'list' | 'cards'>('cards');
+  const [missionFeedback, setMissionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [missionLoadingId, setMissionLoadingId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchDeviceData = async () => {
@@ -27,7 +31,7 @@ const DeviceManager: React.FC = () => {
       setApiError(false);
       
       try {
-        const response = await fetch('https://liwanag-backend.onrender.com/api/v1/devices');
+  const response = await fetch(`${API_BASE_URL}/devices`);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
@@ -88,7 +92,7 @@ const DeviceManager: React.FC = () => {
     setApiError(false);
     
     try {
-      const response = await fetch('https://liwanag-backend.onrender.com/api/v1/devices');
+  const response = await fetch(`${API_BASE_URL}/devices`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
@@ -108,9 +112,59 @@ const DeviceManager: React.FC = () => {
 
 
   // Handle Start Mission button
-  const handleStartMission = (device: Device) => {
-    console.log(`Starting mission for device: ${device.name}`);
-    // Add mission logic here
+  const handleStartMission = async (device: Device) => {
+    setMissionFeedback(null);
+    setMissionLoadingId(device.device_id);
+
+    try {
+      const statusResponse = await fetch(`${API_BASE_URL}/device-status/${device.device_id}`);
+
+      if (!statusResponse.ok) {
+        const statusText = await statusResponse.text();
+        throw new Error(`Status check failed: ${statusResponse.status} ${statusText}`);
+      }
+
+      const statusData = await statusResponse.json();
+
+      if (!statusData || typeof statusData.status !== 'string') {
+        throw new Error('Malformed status response received from server');
+      }
+
+      if (statusData.status.toLowerCase() !== 'online') {
+        throw new Error(`Device ${device.device_id} is ${statusData.status}. Bring device online before starting a mission.`);
+      }
+
+      const missionResponse = await fetch(`${API_BASE_URL}/set-mission`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          device_id: device.device_id,
+          on_mission: true,
+        }),
+      });
+
+      if (!missionResponse.ok) {
+        const missionText = await missionResponse.text();
+        throw new Error(`Mission start failed: ${missionResponse.status} ${missionText}`);
+      }
+
+      const missionResult = await missionResponse.json();
+
+      setMissionFeedback({
+        type: 'success',
+        message: missionResult?.message || `Mission started for device ${device.device_id}.`,
+      });
+
+      await handleRefresh();
+    } catch (missionError) {
+      const message = missionError instanceof Error ? missionError.message : 'Mission start failed unexpectedly';
+      console.error('Error starting mission:', missionError);
+      setMissionFeedback({ type: 'error', message });
+    } finally {
+      setMissionLoadingId(null);
+    }
   };
 
   // Check if device can start mission (only Alpha devices for now)
@@ -184,16 +238,24 @@ const DeviceManager: React.FC = () => {
 
           {/* Action Button */}
           <button
-            onClick={() => canMission ? handleStartMission(device) : undefined}
-            disabled={!canMission}
+            onClick={() => (canMission && missionLoadingId !== device.device_id) ? handleStartMission(device) : undefined}
+            disabled={!canMission || missionLoadingId === device.device_id}
             className={`mx-auto w-3/4 py-2 px-4 mt-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
               canMission
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-gray-900 hover:shadow-lg'
+                ? missionLoadingId === device.device_id
+                  ? 'bg-amber-700 text-gray-200 cursor-wait opacity-80'
+                  : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-gray-900 hover:shadow-lg'
                 : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-50'
             }`}
           >
-            <Play size={16} />
-            <span>Start Mission</span>
+            {missionLoadingId === device.device_id ? (
+              <span className="text-xs uppercase tracking-wide">Starting...</span>
+            ) : (
+              <>
+                <Play size={16} />
+                <span>Start Mission</span>
+              </>
+            )}
           </button>
         </CardContent>
       </Card>
@@ -259,6 +321,14 @@ const DeviceManager: React.FC = () => {
             </div>
           )}
         
+        {missionFeedback && (
+          <Card className={`mb-4 ${missionFeedback.type === 'success' ? 'bg-emerald-900 border-emerald-700' : 'bg-red-900 border-red-700'}`}>
+            <CardContent className="py-4 text-white text-sm">
+              {missionFeedback.message}
+            </CardContent>
+          </Card>
+        )}
+
         {error && !apiError && !deviceData && (
           <Card className="mb-6 bg-red-900 border-red-700">
             <CardHeader>
@@ -365,7 +435,9 @@ const DeviceManager: React.FC = () => {
                               <button 
                                 className={`px-3 py-1 rounded text-xs font-medium ${
                                   canStartMission(device)
-                                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                                    ? missionLoadingId === device.device_id
+                                      ? 'bg-amber-700 text-gray-200 cursor-wait opacity-80'
+                                      : 'bg-amber-600 hover:bg-amber-700 text-white'
                                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                 }`}
                                 onClick={(e) => {
@@ -374,9 +446,13 @@ const DeviceManager: React.FC = () => {
                                     handleStartMission(device);
                                   }
                                 }}
-                                disabled={!canStartMission(device)}
+                                disabled={!canStartMission(device) || missionLoadingId === device.device_id}
                               >
-                                {canStartMission(device) ? 'Start Mission' : 'Disabled'}
+                                {missionLoadingId === device.device_id
+                                  ? 'Starting...'
+                                  : canStartMission(device)
+                                    ? 'Start Mission'
+                                    : 'Disabled'}
                               </button>
                             </td>
                           </tr>
@@ -452,13 +528,19 @@ const DeviceManager: React.FC = () => {
                     <button 
                       className={`px-4 py-2 rounded font-medium ${
                         canStartMission(selectedDevice)
-                          ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                          ? missionLoadingId === selectedDevice.device_id
+                            ? 'bg-amber-700 text-gray-200 cursor-wait opacity-80'
+                            : 'bg-amber-600 hover:bg-amber-700 text-white'
                           : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                       }`}
-                      onClick={() => canStartMission(selectedDevice) ? handleStartMission(selectedDevice) : undefined}
-                      disabled={!canStartMission(selectedDevice)}
+                      onClick={() => canStartMission(selectedDevice) && missionLoadingId !== selectedDevice.device_id ? handleStartMission(selectedDevice) : undefined}
+                      disabled={!canStartMission(selectedDevice) || missionLoadingId === selectedDevice.device_id}
                     >
-                      {canStartMission(selectedDevice) ? 'Start Mission' : 'Mission Disabled'}
+                      {missionLoadingId === selectedDevice.device_id
+                        ? 'Starting...'
+                        : canStartMission(selectedDevice)
+                          ? 'Start Mission'
+                          : 'Mission Disabled'}
                     </button>
                     {selectedDevice.status.toLowerCase() === 'offline' && (
                       <button 
