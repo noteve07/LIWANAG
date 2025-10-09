@@ -9,7 +9,7 @@ import {
 import PageTransition from '../../components/ui/PageTransition';
 import type { Device, DeviceData } from '../../types/device';
 import { Navigate } from 'react-router-dom';
-import { Wifi, WifiOff, Play } from 'lucide-react';
+import { Wifi, WifiOff, Play, Square } from 'lucide-react';
 import espLogo from './espressif-systems.svg';
 
 const API_BASE_URL = 'https://liwanag-backend.onrender.com/api/v1';
@@ -23,6 +23,7 @@ const DeviceManager: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'cards'>('cards');
   const [missionFeedback, setMissionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [missionLoadingId, setMissionLoadingId] = useState<number | null>(null);
+  const [missionActiveDevices, setMissionActiveDevices] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const fetchDeviceData = async () => {
@@ -157,10 +158,55 @@ const DeviceManager: React.FC = () => {
         message: missionResult?.message || `Mission started for device ${device.device_id}.`,
       });
 
+      if (device.device_id === 1001) {
+        setMissionActiveDevices(prev => ({
+          ...prev,
+          [device.device_id]: true,
+        }));
+      }
+
       await handleRefresh();
     } catch (missionError) {
       const message = missionError instanceof Error ? missionError.message : 'Mission start failed unexpectedly';
       console.error('Error starting mission:', missionError);
+      setMissionFeedback({ type: 'error', message });
+    } finally {
+      setMissionLoadingId(null);
+    }
+  };
+
+  const handleStopMission = async (device: Device) => {
+    setMissionFeedback(null);
+    setMissionLoadingId(device.device_id);
+
+    try {
+      const stopResponse = await fetch(`${API_BASE_URL}/stop-mission-device?device_id=${device.device_id}`, {
+        method: 'POST',
+      });
+
+      if (!stopResponse.ok) {
+        const stopText = await stopResponse.text();
+        throw new Error(`Mission stop failed: ${stopResponse.status} ${stopText}`);
+      }
+
+      const stopResult = await stopResponse.json();
+
+      setMissionFeedback({
+        type: 'success',
+        message: stopResult?.message || `Mission stopped for device ${device.device_id}.`,
+      });
+
+      if (device.device_id === 1001) {
+        setMissionActiveDevices(prev => ({
+          ...prev,
+          [device.device_id]: false,
+        }));
+      }
+
+      await handleRefresh();
+    } catch (missionError) {
+      const message = missionError instanceof Error ? missionError.message : 'Mission stop failed unexpectedly';
+      console.error('Error stopping mission:', missionError);
       setMissionFeedback({ type: 'error', message });
     } finally {
       setMissionLoadingId(null);
@@ -176,6 +222,19 @@ const DeviceManager: React.FC = () => {
   const DeviceCard = ({ device }: { device: Device }) => {
     const isOnline = device.status.toLowerCase() === 'online';
     const canMission = canStartMission(device);
+    const isAlphaDevice = device.device_id === 1001;
+    const isMissionActive = !!missionActiveDevices[device.device_id];
+    const isStopMode = isAlphaDevice && isMissionActive;
+    const isBusy = missionLoadingId === device.device_id;
+
+    const handleMissionClick = () => {
+      if (!canMission || isBusy) return;
+      if (isStopMode) {
+        handleStopMission(device);
+      } else {
+        handleStartMission(device);
+      }
+    };
     
     return (
       <Card className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-all duration-300 hover:shadow-lg overflow-hidden h-auto">
@@ -238,22 +297,26 @@ const DeviceManager: React.FC = () => {
 
           {/* Action Button */}
           <button
-            onClick={() => (canMission && missionLoadingId !== device.device_id) ? handleStartMission(device) : undefined}
-            disabled={!canMission || missionLoadingId === device.device_id}
+            onClick={handleMissionClick}
+            disabled={!canMission || isBusy}
             className={`mx-auto w-3/4 py-2 px-4 mt-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
               canMission
-                ? missionLoadingId === device.device_id
-                  ? 'bg-amber-700 text-gray-200 cursor-wait opacity-80'
-                  : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-gray-900 hover:shadow-lg'
+                ? isBusy
+                  ? isStopMode
+                    ? 'bg-red-800 text-gray-200 cursor-wait opacity-80'
+                    : 'bg-amber-700 text-gray-200 cursor-wait opacity-80'
+                  : isStopMode
+                    ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white hover:shadow-lg'
+                    : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-gray-900 hover:shadow-lg'
                 : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-50'
             }`}
           >
-            {missionLoadingId === device.device_id ? (
-              <span className="text-xs uppercase tracking-wide">Starting...</span>
+            {isBusy ? (
+              <span className="text-xs uppercase tracking-wide">{isStopMode ? 'Stopping...' : 'Starting...'}</span>
             ) : (
               <>
-                <Play size={16} />
-                <span>Start Mission</span>
+                {isStopMode ? <Square size={16} /> : <Play size={16} />}
+                <span>{isStopMode ? 'Stop Mission' : 'Start Mission'}</span>
               </>
             )}
           </button>
@@ -403,7 +466,34 @@ const DeviceManager: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {deviceData.devices.map((device: Device) => (
+                        {deviceData.devices.map((device: Device) => {
+                          const isAlphaDevice = device.device_id === 1001;
+                          const isMissionActive = !!missionActiveDevices[device.device_id];
+                          const isStopMode = isAlphaDevice && isMissionActive;
+                          const isBusy = missionLoadingId === device.device_id;
+                          const missionEnabled = canStartMission(device);
+
+                          const buttonClass = missionEnabled
+                            ? isBusy
+                              ? isStopMode
+                                ? 'bg-red-800 text-gray-200 cursor-wait opacity-80'
+                                : 'bg-amber-700 text-gray-200 cursor-wait opacity-80'
+                              : isStopMode
+                                ? 'bg-red-600 hover:bg-red-700 text-white'
+                                : 'bg-amber-600 hover:bg-amber-700 text-white'
+                            : 'bg-gray-600 text-gray-400 cursor-not-allowed';
+
+                          const handleMission = (e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            if (!missionEnabled || isBusy) return;
+                            if (isStopMode) {
+                              handleStopMission(device);
+                            } else {
+                              handleStartMission(device);
+                            }
+                          };
+
+                          return (
                           <tr 
                             key={device.device_id} 
                             className="border-b bg-gray-800 border-gray-700 hover:bg-gray-700 cursor-pointer"
@@ -433,30 +523,20 @@ const DeviceManager: React.FC = () => {
                             <td className="px-6 py-4">{device.data_points_collected.toLocaleString()}</td>
                             <td className="px-6 py-4">
                               <button 
-                                className={`px-3 py-1 rounded text-xs font-medium ${
-                                  canStartMission(device)
-                                    ? missionLoadingId === device.device_id
-                                      ? 'bg-amber-700 text-gray-200 cursor-wait opacity-80'
-                                      : 'bg-amber-600 hover:bg-amber-700 text-white'
-                                    : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                                }`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (canStartMission(device)) {
-                                    handleStartMission(device);
-                                  }
-                                }}
-                                disabled={!canStartMission(device) || missionLoadingId === device.device_id}
+                                className={`px-3 py-1 rounded text-xs font-medium ${buttonClass}`}
+                                onClick={handleMission}
+                                disabled={!missionEnabled || isBusy}
                               >
-                                {missionLoadingId === device.device_id
-                                  ? 'Starting...'
-                                  : canStartMission(device)
-                                    ? 'Start Mission'
+                                {isBusy
+                                  ? (isStopMode ? 'Stopping...' : 'Starting...')
+                                  : missionEnabled
+                                    ? (isStopMode ? 'Stop Mission' : 'Start Mission')
                                     : 'Disabled'}
                               </button>
                             </td>
                           </tr>
-                        ))}
+                        );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -474,86 +554,108 @@ const DeviceManager: React.FC = () => {
             )}
 
             {/* Selected Device Details Modal/Card */}
-            {selectedDevice && viewMode === 'list' && (
-              <Card className="mt-6 bg-gray-800 border-gray-700 py-4 px-2">
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-white">Device Details: {selectedDevice.name}</CardTitle>
-                    <button 
-                      className="text-gray-400 hover:text-white"
-                      onClick={() => setSelectedDevice(null)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-gray-400 mb-1">Device ID</h4>
-                      <p className="text-white mb-3">{selectedDevice.device_id}</p>
-                      
-                      <h4 className="text-gray-400 mb-1">Status</h4>
-                      <p className="mb-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(selectedDevice.status)} text-white`}>
-                          {selectedDevice.status}
-                        </span>
-                      </p>
-                      
-                      <h4 className="text-gray-400 mb-1">Battery Level</h4>
-                      <div className="flex items-center mb-3">
-                        <div className="w-full bg-gray-600 rounded-full h-2.5 mr-2 max-w-[200px]">
-                          <div 
-                            className={`h-2.5 rounded-full ${getBatteryLevelClass(selectedDevice.battery_level)}`} 
-                            style={{ width: `${selectedDevice.battery_level}%` }}
-                          ></div>
+            {selectedDevice && viewMode === 'list' && (() => {
+              const missionEnabled = canStartMission(selectedDevice);
+              const isAlphaSelected = selectedDevice.device_id === 1001;
+              const isMissionActive = !!missionActiveDevices[selectedDevice.device_id];
+              const isStopMode = isAlphaSelected && isMissionActive;
+              const isBusy = missionLoadingId === selectedDevice.device_id;
+              const buttonClass = missionEnabled
+                ? isBusy
+                  ? isStopMode
+                    ? 'bg-red-800 text-gray-200 cursor-wait opacity-80'
+                    : 'bg-amber-700 text-gray-200 cursor-wait opacity-80'
+                  : isStopMode
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-amber-600 hover:bg-amber-700 text-white'
+                : 'bg-gray-600 text-gray-400 cursor-not-allowed';
+
+              const handleMission = () => {
+                if (!missionEnabled || isBusy) return;
+                if (isStopMode) {
+                  handleStopMission(selectedDevice);
+                } else {
+                  handleStartMission(selectedDevice);
+                }
+              };
+
+              const buttonLabel = isBusy
+                ? (isStopMode ? 'Stopping...' : 'Starting...')
+                : missionEnabled
+                  ? (isStopMode ? 'Stop Mission' : 'Start Mission')
+                  : 'Mission Disabled';
+
+              return (
+                <Card className="mt-6 bg-gray-800 border-gray-700 py-4 px-2">
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-white">Device Details: {selectedDevice.name}</CardTitle>
+                      <button 
+                        className="text-gray-400 hover:text-white"
+                        onClick={() => setSelectedDevice(null)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-gray-400 mb-1">Device ID</h4>
+                        <p className="text-white mb-3">{selectedDevice.device_id}</p>
+                        
+                        <h4 className="text-gray-400 mb-1">Status</h4>
+                        <p className="mb-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(selectedDevice.status)} text-white`}>
+                            {selectedDevice.status}
+                          </span>
+                        </p>
+                        
+                        <h4 className="text-gray-400 mb-1">Battery Level</h4>
+                        <div className="flex items-center mb-3">
+                          <div className="w-full bg-gray-600 rounded-full h-2.5 mr-2 max-w-[200px]">
+                            <div 
+                              className={`h-2.5 rounded-full ${getBatteryLevelClass(selectedDevice.battery_level)}`} 
+                              style={{ width: `${selectedDevice.battery_level}%` }}
+                            ></div>
+                          </div>
+                          <span>{selectedDevice.battery_level}%</span>
                         </div>
-                        <span>{selectedDevice.battery_level}%</span>
+                      </div>
+                      
+                      <div>
+                        <h4 className="text-gray-400 mb-1">Last Seen</h4>
+                        <p className="text-white mb-3">{formatTimestamp(selectedDevice.last_seen)}</p>
+                        
+                        <h4 className="text-gray-400 mb-1">Time Since Last Update</h4>
+                        <p className="text-white mb-3">{formatTimeSinceLastSeen(selectedDevice.minutes_since_last_seen)}</p>
+                        
+                        <h4 className="text-gray-400 mb-1">Data Points Collected</h4>
+                        <p className="text-white mb-3">{selectedDevice.data_points_collected.toLocaleString()}</p>
                       </div>
                     </div>
                     
-                    <div>
-                      <h4 className="text-gray-400 mb-1">Last Seen</h4>
-                      <p className="text-white mb-3">{formatTimestamp(selectedDevice.last_seen)}</p>
-                      
-                      <h4 className="text-gray-400 mb-1">Time Since Last Update</h4>
-                      <p className="text-white mb-3">{formatTimeSinceLastSeen(selectedDevice.minutes_since_last_seen)}</p>
-                      
-                      <h4 className="text-gray-400 mb-1">Data Points Collected</h4>
-                      <p className="text-white mb-3">{selectedDevice.data_points_collected.toLocaleString()}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 flex justify-end space-x-2">
-                    <button 
-                      className={`px-4 py-2 rounded font-medium ${
-                        canStartMission(selectedDevice)
-                          ? missionLoadingId === selectedDevice.device_id
-                            ? 'bg-amber-700 text-gray-200 cursor-wait opacity-80'
-                            : 'bg-amber-600 hover:bg-amber-700 text-white'
-                          : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                      }`}
-                      onClick={() => canStartMission(selectedDevice) && missionLoadingId !== selectedDevice.device_id ? handleStartMission(selectedDevice) : undefined}
-                      disabled={!canStartMission(selectedDevice) || missionLoadingId === selectedDevice.device_id}
-                    >
-                      {missionLoadingId === selectedDevice.device_id
-                        ? 'Starting...'
-                        : canStartMission(selectedDevice)
-                          ? 'Start Mission'
-                          : 'Mission Disabled'}
-                    </button>
-                    {selectedDevice.status.toLowerCase() === 'offline' && (
+                    <div className="mt-4 flex justify-end space-x-2">
                       <button 
-                        className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
-                        onClick={() => console.log('Attempt reconnection')}
+                        className={`px-4 py-2 rounded font-medium ${buttonClass}`}
+                        onClick={handleMission}
+                        disabled={!missionEnabled || isBusy}
                       >
-                        Attempt Reconnection
+                        {buttonLabel}
                       </button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                      {selectedDevice.status.toLowerCase() === 'offline' && (
+                        <button 
+                          className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+                          onClick={() => console.log('Attempt reconnection')}
+                        >
+                          Attempt Reconnection
+                        </button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </>
         )}
       </div>
