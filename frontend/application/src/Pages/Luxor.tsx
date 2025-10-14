@@ -1,11 +1,45 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { Bot, Send, User, Lightbulb } from "lucide-react";
 
+const STATIC_RESPONSE = `Based on current illumination data, here are the top 3 priority streets in Barangay Tenejero:
+
+M. Dela Cruz Street – Critical (avg: 4.2 lux)
+Rizal Avenue – Critical (avg: 6.8 lux)
+Burgos Street – Low (avg: 8.1 lux)
+
+I recommend immediate maintenance on M. Dela Cruz Street and Rizal Avenue to improve public safety.`;
+
+const LOADING_DELAY_MS = 1000;
+const TYPING_DELAY_MS = 600;
+
+type MessageType = 'user' | 'bot';
+
+interface ChatMessage {
+  id: number;
+  type: MessageType;
+  content: string;
+  timestamp: Date;
+}
+
 function Luxor() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const loadingTimeoutRef = useRef<number | null>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
+
+  const clearPendingTimers = () => {
+    if (loadingTimeoutRef.current !== null) {
+      window.clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+    if (typingTimeoutRef.current !== null) {
+      window.clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -15,19 +49,19 @@ function Luxor() {
     scrollToBottom();
   }, [messages]);
 
-  const sampleResponses = [
-    "Based on the latest sensor data, the street lights in that area are functioning optimally with an average lux reading of 650-750 lux. All 12 sensors in that zone are reporting normal values.",
-    "I can see that 47 out of 52 streetlight sensors are currently online and collecting illumination data. The remaining 5 sensors are offline, mainly in the northern district.",
-    "The collected illumination data shows 78% well-lit coverage across Balanga City. Poorly lit areas include sections of Cupang (average 3.2 lux) and parts of Poblacion (average 4.1 lux).",
-    "Current illumination levels are optimal. Tonight's average street light brightness is 12.4 lux citywide, with peak readings of 18-22 lux along major thoroughfares.",
-    "Sensor Alpha_23 in Tenejero is reporting consistently low readings (2.1 lux) over the past 3 days. This indicates potential bulb degradation or obstruction.",
-  ];
+  useEffect(() => {
+    return () => {
+      clearPendingTimers();
+    };
+  }, []);
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
 
+    clearPendingTimers();
+
     // Add user message
-    const userMessage = {
+    const userMessage: ChatMessage = {
       id: Date.now(),
       type: 'user',
       content: inputMessage,
@@ -36,7 +70,7 @@ function Luxor() {
 
     // If this is the first message, add greeting first
     if (messages.length === 0) {
-      const greetingMessage = {
+      const greetingMessage: ChatMessage = {
         id: Date.now() - 1,
         type: 'bot',
         content: "Hello! I'm ready to help you with any questions about LIWANAG's street illumination system. What would you like to know?",
@@ -48,22 +82,29 @@ function Luxor() {
     }
     
     setInputMessage('');
-    setIsTyping(true);
+    setIsTyping(false);
+    setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const botMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        content: sampleResponses[Math.floor(Math.random() * sampleResponses.length)],
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botMessage]);
-      setIsTyping(false);
-    }, 1500);
+    loadingTimeoutRef.current = window.setTimeout(() => {
+      loadingTimeoutRef.current = null;
+      setIsLoading(false);
+      setIsTyping(true);
+
+      typingTimeoutRef.current = window.setTimeout(() => {
+        typingTimeoutRef.current = null;
+        const botMessage: ChatMessage = {
+          id: Date.now() + 1,
+          type: 'bot',
+          content: STATIC_RESPONSE,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, botMessage]);
+        setIsTyping(false);
+      }, TYPING_DELAY_MS);
+    }, LOADING_DELAY_MS);
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -125,7 +166,13 @@ function Luxor() {
                   ? 'bg-slate-700/40 text-white rounded-3xl rounded-tl-lg border border-slate-600/20'
                   : 'bg-gradient-to-br from-amber-400 to-amber-500 text-gray-900 rounded-3xl rounded-tr-lg shadow-lg'
               }`}>
-                <p className="text-base leading-relaxed">{message.content}</p>
+                <div className="space-y-1">
+                  {message.content.split('\n').map((line, idx) => (
+                    <p key={idx} className="text-base leading-relaxed whitespace-pre-wrap">
+                      {line || '\u00A0'}
+                    </p>
+                  ))}
+                </div>
                 <span className={`text-sm mt-3 block ${
                   message.type === 'bot' ? 'text-gray-400' : 'text-gray-700/80'
                 }`}>
@@ -136,6 +183,21 @@ function Luxor() {
           </div>
         ))}
         
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="flex items-start space-x-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center shadow-lg">
+                <Lightbulb size={22} className="text-gray-900 animate-pulse" />
+              </div>
+              <div className="bg-slate-700/40 rounded-3xl rounded-tl-lg px-6 py-4 border border-slate-600/20 flex items-center space-x-3">
+                <div className="w-4 h-4 border-2 border-amber-400/60 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm text-gray-400">Luxor is analyzing illumination data...</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Typing indicator */}
         {isTyping && (
           <div className="flex justify-start">
@@ -164,10 +226,10 @@ function Luxor() {
             <textarea
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
               placeholder="Ask Luxor about street illumination data, sensor readings, lighting coverage..."
               className="w-full bg-slate-700/30 border border-slate-600/30 text-white rounded-2xl px-6 py-4 pr-16 focus:outline-none focus:border-amber-400/50 placeholder-gray-400 resize-none min-h-[70px] max-h-40 text-lg"
-              rows="1"
+              rows={1}
             />
             <div className="absolute bottom-3 right-3 text-xs text-gray-500">
               Press Enter to send
